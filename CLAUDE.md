@@ -5,6 +5,19 @@
 
 ---
 
+## 0. Agent Start-of-Session Checklist
+
+**Before starting any task, agents MUST:**
+
+1. Read `README.md` in the repository root.
+2. Compare the client requirements listed in `README.md` with the requirements recorded in Section 2 of this document.
+3. If any requirements in `README.md` are newer or differ from those in this document, update Section 2 of this document to match `README.md` before proceeding with the task.
+4. Treat `README.md` as the single source of truth for client requirements — it is updated by the client and must always be reflected here.
+
+> ⚠️ Never begin implementation work without first completing steps 1–3 above.
+
+---
+
 ## 1. Project Overview
 
 - **Project name**: Tunaed_Pokemon (어장식 포켓몬)
