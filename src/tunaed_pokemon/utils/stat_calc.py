@@ -6,8 +6,6 @@ Handles HP/stat formulas, IV/EV, and the strict distinction between
 
 from __future__ import annotations
 
-import math
-
 from tunaed_pokemon.models.enums import (
     StatType,
     STAT_RANK_STAGE_MULTIPLIERS,

@@ -6,7 +6,7 @@ and potential categories as defined in the 오레마스 ruleset.
 
 from __future__ import annotations
 
-from enum import Enum, IntEnum, auto
+from enum import Enum
 
 
 # ---------------------------------------------------------------------------

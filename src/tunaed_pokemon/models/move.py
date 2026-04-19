@@ -5,7 +5,7 @@ Moves are selected from a master list that is editable via in-app editor (SK-01)
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from tunaed_pokemon.models.enums import MoveCategory, MoveContact, PokemonType
@@ -47,8 +47,4 @@ class Move:
     is_sound: bool = False
     is_punch: bool = False
     is_blade: bool = False
-    additional_flags: list[str] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:
-        if self.additional_flags is None:
-            self.additional_flags = []
+    additional_flags: list[str] = field(default_factory=list)
