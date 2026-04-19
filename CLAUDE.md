@@ -52,7 +52,12 @@
 | ID | Requirement | Status |
 |----|-------------|--------|
 | P-01 | A party consists of a trainer + party members | Not started |
-| P-02 | Default 6 party members; variable 5–8 depending on context | Not started |
+| P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Not started |
+
+> **P-02 notes:**
+> - Regardless of party size, the battle is fundamentally a 6v6 full battle; this may change depending on the trainer's 고유포텐셜.
+> - Party members fill the role of "Pokémon" in a standard Pokémon game; trainers fill the "trainer" role.
+> - However, since this simulation is based on the Pokémon battle system, it can also resemble a human-vs-human ability battle.
 
 ### 2.4 Potential System
 
@@ -70,6 +75,13 @@
 > - **전용포텐셜** (Exclusive Potential): A particularly powerful potential held by a *Pokémon*, distinct from ordinary potentials. It is not revealed by normal encyclopedia (도감) analysis.
 >
 > These two categories must be implemented as separate, clearly named fields in the data model.
+>
+> **Pokémon potential name list (full):**
+> 【포텐셜】 『역할』, 『분류』, 『주인』, 『이명』, 『계제 ①』, 『계제 ②』, 『계제 ③』, 『계제 ④』, 『속별』, 『유대』, 『선제』, 『회피』, 『내성』, 『○격』, 『범용』, 『부수』, 『특권』, 『PT ①』, 『PT ②』, 전용포텐셜
+>
+> **Potential distribution rules:**
+> - All Pokémon always have: 계제①~②, 속별, 선제, 회피, 내성, 격, 범용
+> - Variable (depends on party allocation and training level): 역할, 분류, 주인, 이명, 계제③~④, 유대, 부수, 특권, PT①~②
 
 ### 2.5 Skills and Abilities
 
@@ -96,7 +108,8 @@
 | FE-04 | Electric Field and other persistent field effects state management | Not started |
 | FE-05 | Weather (sun, rain, sand, hail, etc.) state management | Not started |
 | FE-06 | Special fields (alternate dimensions, arenas, etc.) state management | Not started |
-| FE-07 | Field effects are categorized primarily by 「가로낫」 (whole-field vs. one-side scope) | Not started |
+
+> **Important distinction**: 《필드》 (special arena-type field, FE-06) and 「필드」 (persistent field effect, FE-04) are different concepts and must be treated separately throughout the system.
 
 ### 2.8 Interface
 
@@ -161,7 +174,7 @@
 - All mid-battle state mutations must be recorded as discrete events (event sourcing pattern)
 - The event log drives both Undo/Redo (B-02) and animation playback (B-03)
 - A separate "battle editor" mode exposes raw state fields for manual correction (B-04)
-- Field environment states (FE-01 – FE-07) are part of the battle snapshot
+- Field environment states (FE-01 – FE-06) are part of the battle snapshot
 
 ### 3.7 Terminology Enforcement (ST-02)
 - 강화 (reinforcement): a multiplier that directly scales a stat value (e.g. ×2) — does NOT use rank stages
@@ -195,7 +208,9 @@
 - **Base stat rank (종족치 랭크)**: E (1–35) to S (200+)
 - **Moves (기술)**: 4–8 depending on total base stat; extended pool via 기능확장 potential (SK-02)
 - **Ability (특성)**: selected from master list; may change mid-battle (SK-03)
-- **Potentials**: 역할, 분류, 주인, 이명, 계제, 속별, 유대, 선제, 회피, 내성, 격, 범용, 부수, 특권, PT, 전용
+- **Potentials**: 역할, 분류, 주인, 이명, 계제①~④, 속별, 유대, 선제, 회피, 내성, ○격, 범용, 부수, 특권, PT①~②, 전용포텐셜
+  - All Pokémon always have: 계제①~②, 속별, 선제, 회피, 내성, 격, 범용
+  - Variable by party/training: 역할, 분류, 주인, 이명, 계제③~④, 유대, 부수, 특권, PT①~②
   - **전용포텐셜**: Particularly powerful potential held by a Pokémon, hidden from normal encyclopedia analysis — stored as a separate named field
 - Detail: `docs/pokemon_data_template.md`
 
@@ -289,7 +304,7 @@ See: `docs/기본 규칙.md`, `docs/기타 시스템 처리규칙.md`
 ## 6. Suggested Implementation Priority
 
 1. **Data models**: Define structures for trainer, Pokémon, potentials, items (including separate 고유포텐셜 / 전용포텐셜 fields; IV/EV; 강화/상승 distinction)
-2. **Battle engine core**: Turn progression, damage calculation, type chart, action order, field environment states (FE-01–FE-07)
+2. **Battle engine core**: Turn progression, damage calculation, type chart, action order, field environment states (FE-01–FE-06)
 3. **State management**: Status condition/change system, battle state serialization, Undo/Redo (B-01, B-02), battle editor mode (B-04)
 4. **Potential system**: Condition evaluation + automatic triggering + script / editor authoring (PT-01 – PT-06); 기능확장 support (SK-02)
 5. **Move & ability list editor**: In-app CRUD for 기술 and 특성 master lists (SK-01); ability mid-battle change (SK-03)
@@ -370,14 +385,14 @@ BattleEngine
 ```
 
 #### Effect Engine
-Resolves all effects in a unified pipeline. Satisfies: PT-03, PT-06, SK-02, SK-03, FE-01–FE-07.
+Resolves all effects in a unified pipeline. Satisfies: PT-03, PT-06, SK-02, SK-03, FE-01–FE-06.
 
 ```
 EffectEngine
 ├── EffectResolver        # Ordered resolution: ability effects → potential effects (separate stacks, PT-06)
 ├── DamageCalculator      # Applies 강화 (multiplier) then 상승 (rank stage) correctly (ST-02)
 ├── StatusEngine          # Manages status conditions and status changes
-├── FieldStateManager     # Tracks weather, terrain, barriers, global effects (FE-01–FE-07)
+├── FieldStateManager     # Tracks weather, terrain, barriers, global effects (FE-01–FE-06)
 └── AbilityChangeHandler  # Handles mid-battle ability changes (SK-03)
 ```
 
