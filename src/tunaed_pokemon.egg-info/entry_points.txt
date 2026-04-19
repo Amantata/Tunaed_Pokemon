@@ -1,0 +1,2 @@
+[console_scripts]
+tunaed-pokemon = tunaed_pokemon.main:main
