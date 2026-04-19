@@ -44,6 +44,8 @@
 |----|-------------|--------|
 | B-01 | Save / load in-progress battle state | Not started |
 | B-02 | Store turn history for Undo / Redo navigation | Not started |
+| B-03 | Battle must include presentation effects (animations / event visuals) | Not started |
+| B-04 | Battle state must be directly editable during play to handle errors or execution mistakes | Not started |
 
 ### 2.3 Party System
 
@@ -61,6 +63,7 @@
 | PT-03 | Potentials trigger automatically during the battle processing step when conditions are met | Not started |
 | PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity via script writing or an in-app editor | Not started |
 | PT-05 | Potential naming is strict — see note below | Not started |
+| PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Not started |
 
 > **PT-05 naming rules:**
 > - **고유포텐셜** (Unique Potential): A collective term for potentials uniquely held by each *trainer*. Every trainer has different 고유포텐셜.
@@ -73,8 +76,29 @@
 | ID | Requirement | Status |
 |----|-------------|--------|
 | SK-01 | 기술 (moves) and 특성 (abilities) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Not started |
+| SK-02 | The 「기능확장」 potential allows use of moves not normally learnable; this feature must be supported | Not started |
+| SK-03 | Abilities (특성) can change mid-battle via moves, potentials, or other abilities | Not started |
 
-### 2.6 Interface
+### 2.6 Base Stats System
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Not started |
+| ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Not started |
+
+### 2.7 Field Environment System
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| FE-01 | Barrier moves (Reflect, Light Screen, etc.) state management | Not started |
+| FE-02 | Terrain moves (Grassy Terrain, etc.) state management | Not started |
+| FE-03 | Global field moves (Trick Room, Tailwind, etc.) state management | Not started |
+| FE-04 | Electric Field and other persistent field effects state management | Not started |
+| FE-05 | Weather (sun, rain, sand, hail, etc.) state management | Not started |
+| FE-06 | Special fields (alternate dimensions, arenas, etc.) state management | Not started |
+| FE-07 | Field effects are categorized primarily by 「가로낫」 (whole-field vs. one-side scope) | Not started |
+
+### 2.8 Interface
 
 | ID | Requirement | Status |
 |----|-------------|--------|
@@ -82,7 +106,7 @@
 | UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Not started |
 | UI-03 | Refer to provided screenshots (to be supplied) | Not started |
 
-### 2.7 Image System
+### 2.9 Image System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
@@ -98,14 +122,22 @@
 
 ### 3.1 Distribution
 - **Required**: Single executable distribution with no installation steps
-- Consider cross-platform support
-- Compare server-based vs. browser-based approaches for online battle
+- Consider cross-platform support (Windows primary, macOS/Linux secondary)
+- Compare server-based vs. browser-based approaches for online battle (see Section 9.7)
 
-### 3.2 Tech Stack Considerations
-- GUI framework: Must support straightforward executable builds
-- Online features: Real-time communication (WebSocket etc.)
-- Spectator mode: Real-time state synchronization required
-- Battle state serialization: Required for save/load and Undo/Redo
+### 3.2 Recommended Tech Stack
+
+| Layer | Recommended Technology | Rationale |
+|-------|----------------------|-----------|
+| Language | Python 3.11+ | Rapid development; large ecosystem; embeddable scripting |
+| GUI framework | PySide6 (Qt6) | Mature; supports single-exe packaging; rich widget set |
+| Packaging | PyInstaller or Nuitka | Produces `.exe` with no Python install required |
+| Scripting engine | Embedded Python (`exec` sandbox) or Lua via `lupa` | For potential scripting (PT-01, PT-04) |
+| Persistence | SQLite via SQLAlchemy | Zero-config embedded DB; single-file |
+| Online / realtime | asyncio + websockets | Lightweight; no external broker needed |
+| Serialization | JSON + dataclasses / Pydantic | Battle state save/load/Undo-Redo |
+
+> See Section 9.7 for detailed comparison of online battle architectures.
 
 ### 3.3 Image System Considerations
 - Link and persist image files (PNG, JPG etc.) on trainer and Pokémon records
@@ -115,13 +147,26 @@
 
 ### 3.4 Potential Scripting / Editor Considerations
 - Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) vary per entity — the system must allow authoring new effect logic
-- Implementation options: embedded scripting language (Lua, Python etc.) or a structured in-app effect editor
+- Implementation: sandboxed Python `exec` with a restricted API surface exposed to scripts
 - Effects authored in the editor must integrate with the automatic battle-processing trigger system (PT-03)
+- Abilities (특성) and potentials operate on completely separate resolution stacks (PT-06)
 
 ### 3.5 Move / Ability List Editor Considerations
 - 기술 and 특성 are chosen from a master list; the master list must be editable at runtime
 - In-app editor must support add, edit, and delete operations on the master lists
-- Changes to master lists should persist across sessions (file-based or DB storage)
+- Changes to master lists should persist across sessions (SQLite storage)
+- 기능확장 potential links a Pokémon entity to additional moves beyond its normal pool (SK-02)
+
+### 3.6 Battle State & Presentation
+- All mid-battle state mutations must be recorded as discrete events (event sourcing pattern)
+- The event log drives both Undo/Redo (B-02) and animation playback (B-03)
+- A separate "battle editor" mode exposes raw state fields for manual correction (B-04)
+- Field environment states (FE-01 – FE-07) are part of the battle snapshot
+
+### 3.7 Terminology Enforcement (ST-02)
+- 강화 (reinforcement): a multiplier that directly scales a stat value (e.g. ×2) — does NOT use rank stages
+- 상승 (rank increase): a rank-stage change (+1, +2, etc.) that modifies stat via the rank multiplier table
+- These terms must appear consistently in code, UI labels, and data fields
 
 ---
 
@@ -146,8 +191,10 @@
 - **Basic info**: name, gender, alien-species flag (아인종), type(s) (1–2), ability (특성), level
 - **Image**: image file path for encyclopedia / battle screen display
 - **Stats (능력치, 6 types)**: HP, Attack, Defense, Sp.Atk, Sp.Def, Speed
+  - Each stat has an Individual Value (개체치); Effort Values (노력치) exist but default to 0 (ST-01)
 - **Base stat rank (종족치 랭크)**: E (1–35) to S (200+)
-- **Moves (기술)**: 4–8 depending on total base stat
+- **Moves (기술)**: 4–8 depending on total base stat; extended pool via 기능확장 potential (SK-02)
+- **Ability (특성)**: selected from master list; may change mid-battle (SK-03)
 - **Potentials**: 역할, 분류, 주인, 이명, 계제, 속별, 유대, 선제, 회피, 내성, 격, 범용, 부수, 특권, PT, 전용
   - **전용포텐셜**: Particularly powerful potential held by a Pokémon, hidden from normal encyclopedia analysis — stored as a separate named field
 - Detail: `docs/pokemon_data_template.md`
@@ -175,6 +222,7 @@
 - STAB (Same-Type Attack Bonus) applies
 - Type chart: 18-type compatibility table
 - Dual-type moves: use the more favorable compatibility; both type effects apply
+- Stat 강화 (multiplier) vs. 상승 (rank stage) are resolved separately in the damage formula (ST-02)
 
 #### Switch System
 - 임의 교대: Voluntary switch
@@ -240,13 +288,14 @@ See: `docs/기본 규칙.md`, `docs/기타 시스템 처리규칙.md`
 
 ## 6. Suggested Implementation Priority
 
-1. **Data models**: Define structures for trainer, Pokémon, potentials, items (including separate 고유포텐셜 / 전용포텐셜 fields)
-2. **Battle engine core**: Turn progression, damage calculation, type chart, action order
-3. **State management**: Status condition/change system, battle state serialization (save/load/Undo/Redo)
-4. **Potential system**: Condition evaluation + automatic triggering + script / editor authoring
-5. **Move & ability list editor**: In-app CRUD for 기술 and 특성 master lists (SK-01)
-6. **GUI**: Battle screen, party editor, data management, encyclopedia with images
-7. **Online features**: Server architecture, real-time communication, spectator mode
+1. **Data models**: Define structures for trainer, Pokémon, potentials, items (including separate 고유포텐셜 / 전용포텐셜 fields; IV/EV; 강화/상승 distinction)
+2. **Battle engine core**: Turn progression, damage calculation, type chart, action order, field environment states (FE-01–FE-07)
+3. **State management**: Status condition/change system, battle state serialization, Undo/Redo (B-01, B-02), battle editor mode (B-04)
+4. **Potential system**: Condition evaluation + automatic triggering + script / editor authoring (PT-01 – PT-06); 기능확장 support (SK-02)
+5. **Move & ability list editor**: In-app CRUD for 기술 and 특성 master lists (SK-01); ability mid-battle change (SK-03)
+6. **GUI + Presentation**: Battle screen, party editor, data management, encyclopedia with images (UI-01 – UI-03, IMG-01 – IMG-03); animation/event system (B-03)
+7. **Online features**: Server architecture, real-time communication, spectator mode (F-02, F-04, F-05)
+8. **Packaging**: Single-executable build pipeline (F-03)
 
 ---
 
@@ -266,3 +315,168 @@ When rules conflict between documents, apply this priority order:
 - 오레마스 potential list: https://wiki.tunaground.net/doku.php?id=오레마스_포텐셜일람
 - 오레마스 move list: https://wiki.tunaground.net/doku.php?id=오레마스_기술
 - 오레마스 ability list: https://wiki.tunaground.net/doku.php?id=오레마스_특성
+
+---
+
+## 9. Architecture Design
+
+> This section describes how the program is structured to satisfy all client requirements. Each layer maps to one or more requirement IDs.
+
+### 9.1 Layer Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Packaging Layer (F-03)                                     │
+│  PyInstaller / Nuitka → single .exe, no install required    │
+├─────────────────────────────────────────────────────────────┤
+│  Online Layer (F-02, F-04, F-05)                            │
+│  asyncio + websockets — battle sync & spectator broadcast   │
+├─────────────────────────────────────────────────────────────┤
+│  Interface Layer (UI-01–03, IMG-01–03, B-03, B-04)          │
+│  PySide6 GUI — screens: Battle / Party Editor /             │
+│  Encyclopedia / Battle Editor / Online Lobby                │
+│  Presentation Engine — event-driven animation player        │
+├─────────────────────────────────────────────────────────────┤
+│  Application Layer                                          │
+│  Use-case orchestration: start battle, process turn,        │
+│  save/load, undo/redo, connect online, enter edit mode      │
+├──────────────────────────┬──────────────────────────────────┤
+│  Domain Layer            │  Script / Editor Layer           │
+│  Battle Engine           │  (PT-01, PT-04, SK-01, SK-02)   │
+│  Effect Engine           │  Potential Script Sandbox        │
+│  Rule Modules            │  (sandboxed Python exec + API)   │
+│  Integrity Rules         │  Move / Ability List Editor      │
+│                          │  기능확장 Move Pool Manager      │
+├──────────────────────────┴──────────────────────────────────┤
+│  Data Layer                                                 │
+│  Master Data (SQLite): 기술 / 특성 / 아이템 / 포텐셜 템플릿  │
+│  Runtime State (JSON): battle snapshot, turn history        │
+│  Asset Metadata: image paths + default placeholder          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 9.2 Domain Layer — Submodule Breakdown
+
+#### Battle Engine
+Responsible for turn lifecycle. Satisfies: F-01, B-01, B-02, B-03, B-04.
+
+```
+BattleEngine
+├── TurnPipeline          # 6-step turn execution (start → command → order → action → end → effects)
+├── ActionOrderResolver   # 가장 먼저 / 상대보다 먼저 / priority+N / speed
+├── SwitchResolver        # 임의 / 통상 / 강제 / 추격 / 유턴
+├── EventBus              # Emits BattleEvent objects consumed by GUI, Undo stack, and animation player
+└── BattleStateSnapshot   # Serializable full state (JSON); used for save/load, Undo/Redo, edit mode
+```
+
+#### Effect Engine
+Resolves all effects in a unified pipeline. Satisfies: PT-03, PT-06, SK-02, SK-03, FE-01–FE-07.
+
+```
+EffectEngine
+├── EffectResolver        # Ordered resolution: ability effects → potential effects (separate stacks, PT-06)
+├── DamageCalculator      # Applies 강화 (multiplier) then 상승 (rank stage) correctly (ST-02)
+├── StatusEngine          # Manages status conditions and status changes
+├── FieldStateManager     # Tracks weather, terrain, barriers, global effects (FE-01–FE-07)
+└── AbilityChangeHandler  # Handles mid-battle ability changes (SK-03)
+```
+
+#### Rule Modules
+```
+RuleModules
+├── TypeChart             # 18-type effectiveness table
+├── CriticalHitCalc       # Gen-5 basis; C+N probability tiers
+├── StatCalc              # HP / stat formula with IV/EV (ST-01); 강화 vs 상승 (ST-02)
+├── MoveValidator         # Checks learnable pool + 기능확장 extended pool (SK-02)
+└── ItemValidator         # Banned-item check; duplicate-within-party check
+```
+
+#### Integrity Rules
+```
+IntegrityRules
+├── PartyConstraints      # 5–8 members (P-02); item uniqueness
+├── PotentialAbilityWall  # Enforces PT-06: blocks cross-influence between ability & potential stacks
+└── NamingEnforcer        # Ensures 고유포텐셜 / 전용포텐셜 fields are never confused
+```
+
+### 9.3 Data Layer — Schema Summary
+
+#### Master Tables (SQLite, persistent)
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `moves` | id, name, type, category, power, accuracy, pp, effect_script | SK-01 CRUD |
+| `abilities` | id, name, effect_description, effect_script | SK-01 CRUD |
+| `items` | id, name, effect, banned | includes original items |
+| `potential_templates` | id, category, name, trigger_text, effect_text | PT-02 selection list |
+
+#### Entity Tables (SQLite, persistent)
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `trainers` | id, name, alias, origin, career, image_path, qualities_json, innate_potentials_json | 고유포텐셜 as JSON array |
+| `pokemon` | id, species, name, gender, is_alien, type1, type2, ability_id, level, iv_json, ev_json, image_path, moves_json, potentials_json, exclusive_potential_json | 전용포텐셜 as separate JSON field |
+| `parties` | id, trainer_id, member_ids_json, max_size | P-01, P-02 |
+
+#### Runtime State (JSON files)
+| File | Contents | Notes |
+|------|----------|-------|
+| `battle_save.json` | Full BattleStateSnapshot | B-01 |
+| `turn_history.json` | Ordered list of BattleStateSnapshot per turn | B-02 Undo/Redo |
+| `event_log.json` | Ordered list of BattleEvent per turn | B-03 animation replay |
+
+### 9.4 Script / Editor Layer
+
+#### Potential Script Sandbox
+- Each potential effect is stored as a Python snippet
+- At runtime, snippets execute inside a restricted namespace exposing only the `BattleAPI` object
+- `BattleAPI` provides read/write access to battle state through typed methods (no arbitrary imports)
+- The in-app editor provides syntax highlighting and a "Test Trigger" button
+
+#### Move / Ability List Editor
+- Full CRUD UI over the `moves` and `abilities` SQLite tables
+- Changes take effect immediately (no restart required)
+- 기능확장 move pool: a join table `pokemon_extended_moves(pokemon_id, move_id)` populated when the potential is assigned (SK-02)
+
+### 9.5 Interface Layer — Screen Map
+
+| Screen | Purpose | Key Requirements |
+|--------|---------|-----------------|
+| Battle Screen | Turn-by-turn battle view with animation | F-01, B-03, UI-01–03 |
+| Battle Editor | Direct field editing overlay (HP, status, field state) | B-04 |
+| Party Editor | Build / edit trainer + Pokémon party | P-01, P-02, IMG-01, IMG-02 |
+| Encyclopedia | Browse trainer / Pokémon data; shows images | IMG-03 |
+| Potential Editor | Script / structured editor for potentials | PT-01, PT-04 |
+| Move/Ability Editor | CRUD list editor for 기술 and 특성 master data | SK-01 |
+| Online Lobby | Create / join battle room, spectate | F-02, F-05 |
+
+**Color tokens** (applied globally via Qt stylesheet):
+- `--color-primary: #34E5FF`
+- `--color-secondary: #FFE66D`
+
+### 9.6 Presentation Engine (B-03)
+
+- Subscribes to `EventBus` events emitted by `BattleEngine`
+- Each `BattleEvent` type maps to one or more animation sequences (move hit, status applied, Pokémon faint, switch, etc.)
+- Animations are non-blocking: the battle engine queues events; the GUI plays them sequentially
+- Replaying from `event_log.json` supports battle replay after the fact
+
+### 9.7 Online Architecture Comparison (F-04)
+
+| Approach | Description | Pros | Cons |
+|----------|-------------|------|------|
+| **A. Embedded Server (recommended)** | One player's exe acts as host; both players run the same exe; host runs a local WebSocket server | No external infrastructure; fits F-03 (single exe); works on LAN or via port-forward/VPN | Requires network configuration (port forwarding / IP sharing) for internet play |
+| **B. Domain Browser** | Dedicated web server hosts battle logic; players connect via browser | No exe required for clients; easier internet access | Requires always-on server with domain/hosting costs; does not satisfy F-03 for offline use |
+
+**Recommendation**: Approach A (Embedded Server) for the initial release to satisfy F-03. Approach B may be offered as a future add-on.
+
+Implementation detail for Approach A:
+- Host exe starts `asyncio` WebSocket server on a configurable port
+- Guest exe connects as client
+- Spectators connect as read-only clients receiving `BattleEvent` broadcasts (F-05)
+- Battle state sync uses the same `BattleStateSnapshot` JSON format
+
+### 9.8 Packaging (F-03)
+
+- Build tool: **PyInstaller** (simpler) or **Nuitka** (smaller / faster exe)
+- All assets (images, SQLite DB, default data) bundled into the exe via `--add-data`
+- On first run, write-able data (user saves, edited master lists) is copied to `%APPDATA%/TunaedPokemon/` so the exe itself remains read-only
+- CI pipeline produces Windows `.exe`; macOS `.app` and Linux binary are stretch goals
