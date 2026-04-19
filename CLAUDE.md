@@ -83,22 +83,28 @@
 > - All Pokémon always have: 계제①~②, 속별, 선제, 회피, 내성, 격, 범용
 > - Variable (depends on party allocation and training level): 역할, 분류, 주인, 이명, 계제③~④, 유대, 부수, 특권, PT①~②
 
-### 2.5 Skills and Abilities
+### 2.5 Skills (기술)
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| SK-01 | 기술 (moves) and 특성 (abilities) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Not started |
+| SK-01 | 기술 (moves) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Not started |
 | SK-02 | The 「기능확장」 potential allows use of moves not normally learnable; this feature must be supported | Not started |
-| SK-03 | Abilities (특성) can change mid-battle via moves, potentials, or other abilities | Not started |
 
-### 2.6 Base Stats System
+### 2.6 Abilities (특성)
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| SK-03 | 특성 (abilities) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Not started |
+| SK-04 | Abilities (특성) can change mid-battle via moves, potentials, or other abilities | Not started |
+
+### 2.7 Base Stats System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
 | ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Not started |
 | ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Not started |
 
-### 2.7 Field Environment System
+### 2.8 Field Environment System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
@@ -111,7 +117,7 @@
 
 > **Important distinction**: 《필드》 (special arena-type field, FE-06) and 「필드」 (persistent field effect, FE-04) are different concepts and must be treated separately throughout the system.
 
-### 2.8 Interface
+### 2.9 Interface
 
 | ID | Requirement | Status |
 |----|-------------|--------|
@@ -119,7 +125,7 @@
 | UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Not started |
 | UI-03 | Refer to provided screenshots (to be supplied) | Not started |
 
-### 2.9 Image System
+### 2.10 Image System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
@@ -165,8 +171,9 @@
 - Abilities (특성) and potentials operate on completely separate resolution stacks (PT-06)
 
 ### 3.5 Move / Ability List Editor Considerations
-- 기술 and 특성 are chosen from a master list; the master list must be editable at runtime
-- In-app editor must support add, edit, and delete operations on the master lists
+- 기술 (moves) are chosen from a master list; the list must be editable at runtime (SK-01)
+- 특성 (abilities) are chosen from a master list; the list must be editable at runtime (SK-03)
+- In-app editor must support add, edit, and delete operations on each master list separately
 - Changes to master lists should persist across sessions (SQLite storage)
 - 기능확장 potential links a Pokémon entity to additional moves beyond its normal pool (SK-02)
 
@@ -207,7 +214,7 @@
   - Each stat has an Individual Value (개체치); Effort Values (노력치) exist but default to 0 (ST-01)
 - **Base stat rank (종족치 랭크)**: E (1–35) to S (200+)
 - **Moves (기술)**: 4–8 depending on total base stat; extended pool via 기능확장 potential (SK-02)
-- **Ability (특성)**: selected from master list; may change mid-battle (SK-03)
+- **Ability (특성)**: selected from master list; may change mid-battle (SK-04)
 - **Potentials**: 역할, 분류, 주인, 이명, 계제①~④, 속별, 유대, 선제, 회피, 내성, ○격, 범용, 부수, 특권, PT①~②, 전용포텐셜
   - All Pokémon always have: 계제①~②, 속별, 선제, 회피, 내성, 격, 범용
   - Variable by party/training: 역할, 분류, 주인, 이명, 계제③~④, 유대, 부수, 특권, PT①~②
@@ -307,7 +314,7 @@ See: `docs/기본 규칙.md`, `docs/기타 시스템 처리규칙.md`
 2. **Battle engine core**: Turn progression, damage calculation, type chart, action order, field environment states (FE-01–FE-06)
 3. **State management**: Status condition/change system, battle state serialization, Undo/Redo (B-01, B-02), battle editor mode (B-04)
 4. **Potential system**: Condition evaluation + automatic triggering + script / editor authoring (PT-01 – PT-06); 기능확장 support (SK-02)
-5. **Move & ability list editor**: In-app CRUD for 기술 and 특성 master lists (SK-01); ability mid-battle change (SK-03)
+5. **Move & ability list editor**: In-app CRUD for 기술 master list (SK-01) and 특성 master list (SK-03); ability mid-battle change (SK-04)
 6. **GUI + Presentation**: Battle screen, party editor, data management, encyclopedia with images (UI-01 – UI-03, IMG-01 – IMG-03); animation/event system (B-03)
 7. **Online features**: Server architecture, real-time communication, spectator mode (F-02, F-04, F-05)
 8. **Packaging**: Single-executable build pipeline (F-03)
@@ -385,7 +392,7 @@ BattleEngine
 ```
 
 #### Effect Engine
-Resolves all effects in a unified pipeline. Satisfies: PT-03, PT-06, SK-02, SK-03, FE-01–FE-06.
+Resolves all effects in a unified pipeline. Satisfies: PT-03, PT-06, SK-02, SK-04, FE-01–FE-06.
 
 ```
 EffectEngine
@@ -393,7 +400,7 @@ EffectEngine
 ├── DamageCalculator      # Applies 강화 (multiplier) then 상승 (rank stage) correctly (ST-02)
 ├── StatusEngine          # Manages status conditions and status changes
 ├── FieldStateManager     # Tracks weather, terrain, barriers, global effects (FE-01–FE-06)
-└── AbilityChangeHandler  # Handles mid-battle ability changes (SK-03)
+└── AbilityChangeHandler  # Handles mid-battle ability changes (SK-04)
 ```
 
 #### Rule Modules
@@ -420,7 +427,7 @@ IntegrityRules
 | Table | Key Columns | Notes |
 |-------|-------------|-------|
 | `moves` | id, name, type, category, power, accuracy, pp, effect_script | SK-01 CRUD |
-| `abilities` | id, name, effect_description, effect_script | SK-01 CRUD |
+| `abilities` | id, name, effect_description, effect_script | SK-03 CRUD |
 | `items` | id, name, effect, banned | includes original items |
 | `potential_templates` | id, category, name, trigger_text, effect_text | PT-02 selection list |
 
@@ -460,7 +467,7 @@ IntegrityRules
 | Party Editor | Build / edit trainer + Pokémon party | P-01, P-02, IMG-01, IMG-02 |
 | Encyclopedia | Browse trainer / Pokémon data; shows images | IMG-03 |
 | Potential Editor | Script / structured editor for potentials | PT-01, PT-04 |
-| Move/Ability Editor | CRUD list editor for 기술 and 특성 master data | SK-01 |
+| Move/Ability Editor | CRUD list editor for 기술 and 특성 master data | SK-01, SK-03 |
 | Online Lobby | Create / join battle room, spectate | F-02, F-05 |
 
 **Color tokens** (applied globally via Qt stylesheet):
