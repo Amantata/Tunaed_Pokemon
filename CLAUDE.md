@@ -52,7 +52,12 @@
 | ID | Requirement | Status |
 |----|-------------|--------|
 | P-01 | A party consists of a trainer + party members | Not started |
-| P-02 | Default 6 party members; variable 5–8 depending on context | Not started |
+| P-02 | Default 1 trainer + 6 party members; variable 1–8 depending on context | Not started |
+
+> **P-02 notes:**
+> - Regardless of party size, the battle is by default a 6v6 full battle; this may change based on the trainer's 고유포텐셜.
+> - Party member = the "Pokémon" role from standard Pokémon; Trainer = the "Trainer" role.
+> - This simulator is based on the Pokémon battle system, but is analogous to a human-vs-human ability battle.
 
 ### 2.4 Potential System
 
@@ -70,6 +75,11 @@
 > - **전용포텐셜** (Exclusive Potential): A particularly powerful potential held by a *Pokémon*, distinct from ordinary potentials. It is not revealed by normal encyclopedia (도감) analysis.
 >
 > These two categories must be implemented as separate, clearly named fields in the data model.
+>
+> **Full Pokémon potential slot list:** 『역할』, 『분류』, 『주인』, 『이명』, 『계제 ①』, 『계제 ②』, 『계제 ③』, 『계제 ④』, 『속별』, 『유대』, 『선제』, 『회피』, 『내성』, 『○격』, 『범용』, 『부수』, 『특권』, 『PT ①』, 『PT ②』, 전용포텐셜
+>
+> **Always present** (all Pokémon): 계제①~②, 속별, 선제, 회피, 내성, 격, 범용
+> **Conditional** (varies by party assignment and training): 역할, 분류, 주인, 이명, 계제③~④, 유대, 부수, 특권, PT①~②
 
 ### 2.5 Skills and Abilities
 
