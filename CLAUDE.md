@@ -51,8 +51,8 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| P-01 | A party consists of a trainer + party members | Not started |
-| P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Not started |
+| P-01 | A party consists of a trainer + party members | Data model done |
+| P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Data model done |
 
 > **P-02 notes:**
 > - Regardless of party size, the battle is fundamentally a 6v6 full battle; this may change depending on the trainer's 고유포텐셜.
@@ -67,8 +67,8 @@
 | PT-02 | Existing potentials can be selected from a list | Not started |
 | PT-03 | Potentials trigger automatically during the battle processing step when conditions are met | Not started |
 | PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity via script writing or an in-app editor | Not started |
-| PT-05 | Potential naming is strict — see note below | Not started |
-| PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Not started |
+| PT-05 | Potential naming is strict — see note below | Data model done |
+| PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Data model done |
 
 > **PT-05 naming rules:**
 > - **고유포텐셜** (Unique Potential): A collective term for potentials uniquely held by each *trainer*. Every trainer has different 고유포텐셜.
@@ -101,8 +101,8 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Not started |
-| ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Not started |
+| ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Data model + calc done |
+| ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Data model + calc done |
 
 ### 2.8 Field Environment System
 
@@ -129,8 +129,8 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| IMG-01 | Trainers must support an assignable image (illustration) | Not started |
-| IMG-02 | Party members (Pokémon) must support an assignable image | Not started |
+| IMG-01 | Trainers must support an assignable image (illustration) | Data model done |
+| IMG-02 | Party members (Pokémon) must support an assignable image | Data model done |
 | IMG-03 | Assigned images must be viewable in the encyclopedia, battle screen, and other relevant views | Not started |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
