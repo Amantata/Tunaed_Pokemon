@@ -1,0 +1,69 @@
+name: "Copilot Setup Steps"
+
+# Automatically run when this file changes (for validation),
+# and allow manual testing from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # This job name MUST be `copilot-setup-steps` — Copilot picks it up by this exact name.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python 3.11 ───────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Core project dependencies ─────────────────────────────────────────
+      # Install the packages that will be used as the project grows.
+      # PySide6 requires a virtual display on Linux; install it here so that
+      # Copilot can import and test GUI code without errors.
+      - name: Install core dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            PySide6 \
+            SQLAlchemy \
+            pydantic \
+            pydantic-settings \
+            websockets \
+            lupa \
+            PyInstaller \
+            pytest \
+            pytest-qt
+
+      # ── 4. Install project package (if pyproject.toml is present) ────────────
+      - name: Install project package
+        run: |
+          if [ -f pyproject.toml ]; then
+            pip install -e ".[dev]"
+          fi
+
+      # ── 5. MCP knowledge-graph tools ─────────────────────────────────────────
+      # graphifyy  – builds a full code knowledge graph
+      # code-review-graph – fast AST-based MCP server for code lookups
+      - name: Install MCP knowledge-graph tools
+        run: |
+          pip install graphifyy code-review-graph
+
+      # ── 6. Build the code-review-graph ───────────────────────────────────────
+      - name: Build code-review-graph
+        run: |
+          code-review-graph build
