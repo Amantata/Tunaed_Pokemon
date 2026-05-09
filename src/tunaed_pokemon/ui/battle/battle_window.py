@@ -39,6 +39,7 @@ from tunaed_pokemon.ui.battle.widgets import (
     PartyOverviewPanel,
     PokemonPanel,
 )
+from tunaed_pokemon.ui.icon_manager import Icons, MEDIUM, SMALL
 
 
 class BattleWindow(QMainWindow):
@@ -74,18 +75,20 @@ class BattleWindow(QMainWindow):
         tb.setMovable(False)
         self.addToolBar(tb)
 
-        def _tb_btn(text: str, tip: str, slot) -> QPushButton:
+        def _tb_btn(text: str, icon, tip: str, slot) -> QPushButton:
             btn = QPushButton(text)
             btn.setObjectName("toolbar_btn")
             btn.setToolTip(tip)
+            btn.setIcon(icon)
+            btn.setIconSize(MEDIUM)
             btn.clicked.connect(slot)
             return btn
 
-        self._save_btn = _tb_btn("💾 저장", "현재 배틀 상태 저장 (B-01)", self._save_state)
-        self._load_btn = _tb_btn("📂 불러오기", "저장된 배틀 상태 불러오기 (B-01)", self._load_state)
-        self._undo_btn = _tb_btn("↩ 되돌리기", "이전 턴으로 되돌리기 (B-02)", self._undo)
-        self._redo_btn = _tb_btn("↪ 다시실행", "다음 턴으로 이동 (B-02)", self._redo)
-        self._edit_btn = _tb_btn("✏️ 배틀 편집", "배틀 상태 직접 편집 (B-04)", self._open_battle_editor)
+        self._save_btn  = _tb_btn("저장",    Icons.SAVE,        "현재 배틀 상태 저장 (B-01)",       self._save_state)
+        self._load_btn  = _tb_btn("불러오기", Icons.LOAD,        "저장된 배틀 상태 불러오기 (B-01)",  self._load_state)
+        self._undo_btn  = _tb_btn("되돌리기", Icons.UNDO,        "이전 턴으로 되돌리기 (B-02)",       self._undo)
+        self._redo_btn  = _tb_btn("다시실행", Icons.REDO,        "다음 턴으로 이동 (B-02)",           self._redo)
+        self._edit_btn  = _tb_btn("배틀 편집", Icons.DIRECT_EDIT, "배틀 상태 직접 편집 (B-04)",       self._open_battle_editor)
 
         for btn in [self._save_btn, self._load_btn, self._undo_btn, self._redo_btn]:
             tb.addWidget(btn)
@@ -182,8 +185,10 @@ class BattleWindow(QMainWindow):
         self._fmt_lbl.setStyleSheet("color: #A0A0B0; font-size: 12px;")
         lay.addWidget(self._fmt_lbl)
 
-        self._next_turn_btn = QPushButton("▶ 다음 턴")
+        self._next_turn_btn = QPushButton("다음 턴")
         self._next_turn_btn.setObjectName("primary")
+        self._next_turn_btn.setIcon(Icons.NEXT_TURN)
+        self._next_turn_btn.setIconSize(MEDIUM)
         self._next_turn_btn.setStyleSheet(
             "font-size: 14px; padding: 10px 20px; min-width: 120px;"
         )
@@ -224,7 +229,6 @@ class BattleWindow(QMainWindow):
         # Turn counter
         self._turn_lbl.setText(f"턴 {s.turn_number}")
 
-        # Undo/Redo buttons
         self._undo_btn.setEnabled(self._history.can_undo())
         self._redo_btn.setEnabled(self._history.can_redo())
 
@@ -251,7 +255,7 @@ class BattleWindow(QMainWindow):
         self._refresh_all()
 
     def _on_switch_requested(self) -> None:
-        self._bus.emit_message("📋 포켓몬 교대 요청 (구현 예정)")
+        self._bus.emit_message("포켓몬 교대 요청 (구현 예정)")
         self._refresh_all()
 
     # ── Turn processing ───────────────────────────────────────────────────────
@@ -299,14 +303,14 @@ class BattleWindow(QMainWindow):
         if snap:
             self._state = snap
             self._refresh_all()
-            self._status_bar.showMessage("↩ 되돌리기", 2000)
+            self._status_bar.showMessage("되돌리기", 2000)
 
     def _redo(self) -> None:
         snap = self._history.redo()
         if snap:
             self._state = snap
             self._refresh_all()
-            self._status_bar.showMessage("↪ 다시실행", 2000)
+            self._status_bar.showMessage("다시실행", 2000)
 
     # ── Battle Editor (B-04) ─────────────────────────────────────────────────
 

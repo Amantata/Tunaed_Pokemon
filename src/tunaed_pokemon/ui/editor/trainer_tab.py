@@ -29,6 +29,7 @@ from tunaed_pokemon.utils.persistence import (
     save_trainer,
     delete_trainer,
 )
+from tunaed_pokemon.ui.icon_manager import Icons, SMALL, apply_icon
 
 
 class TrainerTab(QWidget):
@@ -62,9 +63,11 @@ class TrainerTab(QWidget):
         ll.addWidget(self._list)
 
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("+ 추가")
+        add_btn = QPushButton("추가")
+        apply_icon(add_btn, Icons.ADD, SMALL)
         add_btn.clicked.connect(self._add)
-        del_btn = QPushButton("🗑 삭제")
+        del_btn = QPushButton("삭제")
+        apply_icon(del_btn, Icons.DELETE, SMALL)
         del_btn.clicked.connect(self._delete)
         btn_row.addWidget(add_btn)
         btn_row.addWidget(del_btn)
@@ -89,6 +92,8 @@ class TrainerTab(QWidget):
         self._career_edit.setMaximumHeight(60)
         self._image_edit = QLineEdit()
         self._image_btn = QPushButton("이미지 선택")
+        self._image_btn.setIcon(Icons.IMAGE_PICK)
+        self._image_btn.setIconSize(SMALL)
         self._image_btn.clicked.connect(self._choose_image)
         img_row = QHBoxLayout()
         img_row.addWidget(self._image_edit)
@@ -130,7 +135,8 @@ class TrainerTab(QWidget):
         rl.addWidget(notes_grp)
 
         # Save button
-        save_btn = QPushButton("💾 저장")
+        save_btn = QPushButton("저장")
+        apply_icon(save_btn, Icons.SAVE, SMALL)
         save_btn.clicked.connect(self._save)
         rl.addWidget(save_btn)
         rl.addStretch()

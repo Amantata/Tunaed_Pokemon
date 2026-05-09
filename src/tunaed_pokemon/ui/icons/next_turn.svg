@@ -1,0 +1,12 @@
+<!-- next_turn.svg — 각진 다음 턴 재생 삼각형 / Angular play triangle for "다음 턴" -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Outer hexagon-ish border -->
+  <polygon points="4,24 12,8 36,8 44,24 36,40 12,40"
+           fill="#0F3460" stroke="#34E5FF" stroke-width="2"/>
+  <!-- Play triangle -->
+  <polygon points="17,14 17,34 37,24"
+           fill="#34E5FF" stroke="#34E5FF" stroke-width="1" stroke-linejoin="round"/>
+  <!-- Inner glow line on triangle -->
+  <line x1="17" y1="19" x2="30" y2="24" stroke="#fff" stroke-width="1" opacity="0.35"
+        stroke-linecap="round"/>
+</svg>

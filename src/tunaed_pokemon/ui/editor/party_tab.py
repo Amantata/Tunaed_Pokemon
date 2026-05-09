@@ -32,6 +32,7 @@ from tunaed_pokemon.utils.persistence import (
     export_parties_to_files,
     import_parties_from_files,
 )
+from tunaed_pokemon.ui.icon_manager import Icons, SMALL, apply_icon
 
 
 class PartyTab(QWidget):
@@ -67,19 +68,23 @@ class PartyTab(QWidget):
         ll.addWidget(self._list)
 
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("+ 추가")
+        add_btn = QPushButton("추가")
+        apply_icon(add_btn, Icons.ADD, SMALL)
         add_btn.clicked.connect(self._add)
-        del_btn = QPushButton("🗑 삭제")
+        del_btn = QPushButton("삭제")
+        apply_icon(del_btn, Icons.DELETE, SMALL)
         del_btn.clicked.connect(self._delete)
         btn_row.addWidget(add_btn)
         btn_row.addWidget(del_btn)
         ll.addLayout(btn_row)
 
         # Import / Export (EX-01)
-        imp_btn = QPushButton("📥 가져오기")
+        imp_btn = QPushButton("가져오기")
+        apply_icon(imp_btn, Icons.IMPORT, SMALL)
         imp_btn.setToolTip("JSON 파일에서 파티 불러오기 (복수 선택 가능)")
         imp_btn.clicked.connect(self._import)
-        exp_btn = QPushButton("📤 내보내기")
+        exp_btn = QPushButton("내보내기")
+        apply_icon(exp_btn, Icons.EXPORT, SMALL)
         exp_btn.setToolTip("선택된 파티를 JSON 파일로 내보내기")
         exp_btn.clicked.connect(self._export)
         io_row = QHBoxLayout()
@@ -126,7 +131,8 @@ class PartyTab(QWidget):
             self._member_combos.append(combo)
         rl.addWidget(members_grp)
 
-        save_btn = QPushButton("💾 저장")
+        save_btn = QPushButton("저장")
+        apply_icon(save_btn, Icons.SAVE, SMALL)
         save_btn.clicked.connect(self._save)
         rl.addWidget(save_btn)
         rl.addStretch()

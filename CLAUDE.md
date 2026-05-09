@@ -124,6 +124,8 @@
 | UI-01 | GUI-based interface | Not started |
 | UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Not started |
 | UI-03 | Refer to provided screenshots (to be supplied) | Not started |
+| UI-04 | Battle screen and party/encyclopedia editor are **completely separate application paths** from the launcher. No cross-navigation during battle. | In progress |
+| UI-05 | All UI icons and decorative indicators must use **custom-designed image files** (SVG). Emoji / Unicode emoticons are prohibited. | In progress |
 
 ### 2.10 Image System
 
@@ -132,6 +134,13 @@
 | IMG-01 | Trainers must support an assignable image (illustration) | Not started |
 | IMG-02 | Party members (Pokémon) must support an assignable image | Not started |
 | IMG-03 | Assigned images must be viewable in the encyclopedia, battle screen, and other relevant views | Not started |
+
+### 2.11 Data Import / Export
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| EX-01 | Party data can be imported/exported as external JSON files; multiple files must be selectable at once | In progress |
+| EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | In progress |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 

@@ -1,0 +1,9 @@
+<!-- undo.svg — 반시계 방향 되돌리기 화살표 / Counter-clockwise undo arrow -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Curved arc (counter-clockwise, 270 degrees) -->
+  <path d="M38 24 A14 14 0 1 0 24 38" stroke="#34E5FF" stroke-width="3"
+        stroke-linecap="round" fill="none"/>
+  <!-- Arrow head at the start (top-right) -->
+  <polyline points="32,10 38,16 44,10" stroke="#34E5FF" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

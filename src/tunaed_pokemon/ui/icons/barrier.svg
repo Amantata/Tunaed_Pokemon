@@ -1,0 +1,12 @@
+<!-- barrier.svg — 장벽 효과 (리플렉터 등, FE-01) / Shield for barrier effects -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Shield body -->
+  <path d="M24 4 L40 10 L40 26 Q40 36 24 44 Q8 36 8 26 L8 10 Z"
+        fill="#0F3460" stroke="#34E5FF" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Inner shield plate -->
+  <path d="M24 10 L34 14 L34 26 Q34 32 24 38 Q14 32 14 26 L14 14 Z"
+        fill="#16213E" stroke="#34E5FF" stroke-width="1.5" stroke-linejoin="round" opacity="0.8"/>
+  <!-- Central motif: vertical line + horizontal bar -->
+  <line x1="24" y1="16" x2="24" y2="32" stroke="#34E5FF" stroke-width="2" stroke-linecap="round"/>
+  <line x1="18" y1="22" x2="30" y2="22" stroke="#FFE66D" stroke-width="2" stroke-linecap="round"/>
+</svg>

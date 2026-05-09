@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: tunaed-pokemon
+Version: 0.1.0
+Summary: 어장식 포켓몬 배틀 시뮬레이터
+Requires-Python: >=3.11
+Requires-Dist: PySide6>=6.6
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-qt>=4.0; extra == "dev"

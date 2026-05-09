@@ -1,0 +1,22 @@
+<!-- battle.svg — 교차된 두 자루의 검 / Crossed swords for "전투 시작" -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Left blade: top-left to bottom-right -->
+  <line x1="8" y1="8" x2="40" y2="40" stroke="#34E5FF" stroke-width="3" stroke-linecap="round"/>
+  <!-- Left cross-guard -->
+  <line x1="5" y1="18" x2="18" y2="5" stroke="#FFE66D" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Left pommel -->
+  <circle cx="6" cy="6" r="3.5" fill="#FFE66D"/>
+  <!-- Left handle grip marks -->
+  <line x1="10" y1="10" x2="14" y2="14" stroke="#1A1A2E" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="13" y1="10" x2="17" y2="14" stroke="#1A1A2E" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Right blade: top-right to bottom-left -->
+  <line x1="40" y1="8" x2="8" y2="40" stroke="#34E5FF" stroke-width="3" stroke-linecap="round"/>
+  <!-- Right cross-guard -->
+  <line x1="30" y1="5" x2="43" y2="18" stroke="#FFE66D" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Right pommel -->
+  <circle cx="42" cy="6" r="3.5" fill="#FFE66D"/>
+  <!-- Right handle grip marks -->
+  <line x1="34" y1="10" x2="38" y2="14" stroke="#1A1A2E" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="31" y1="10" x2="35" y2="14" stroke="#1A1A2E" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,15 @@
+<!-- image_pick.svg — 사진 프레임과 산 (이미지 선택) / Picture frame with mountain for image select -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Frame -->
+  <rect x="4" y="8" width="40" height="32" rx="3"
+        fill="#0F3460" stroke="#34E5FF" stroke-width="2"/>
+  <!-- Inner image area -->
+  <rect x="8" y="12" width="32" height="24" rx="2" fill="#16213E"/>
+  <!-- Sky gradient suggestion -->
+  <rect x="8" y="12" width="32" height="12" rx="2" fill="#0a1a3a"/>
+  <!-- Mountains -->
+  <polygon points="8,36 16,22 22,30 28,18 36,30 40,24 40,36"
+           fill="#1e3a5f" stroke="#34E5FF" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Sun/moon circle -->
+  <circle cx="32" cy="18" r="4" fill="#FFE66D" opacity="0.8"/>
+</svg>

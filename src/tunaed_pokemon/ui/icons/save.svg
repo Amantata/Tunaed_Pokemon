@@ -1,0 +1,19 @@
+<!-- save.svg — 플로피 디스크 / Classic floppy disk for "저장" -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Outer body -->
+  <path d="M6 6 L34 6 L42 14 L42 42 L6 42 Z"
+        fill="#0F3460" stroke="#34E5FF" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Top cutout (label area) -->
+  <rect x="12" y="6" width="20" height="14" rx="1"
+        fill="#16213E" stroke="#34E5FF" stroke-width="1.5"/>
+  <!-- Shutter slot -->
+  <rect x="19" y="6" width="5" height="14" rx="1" fill="#34E5FF" opacity="0.25"/>
+  <!-- Write-protect notch -->
+  <rect x="26" y="8" width="3" height="5" rx="0.5" fill="#FFE66D" opacity="0.7"/>
+  <!-- Data window -->
+  <rect x="10" y="28" width="28" height="12" rx="2"
+        fill="#16213E" stroke="#34E5FF" stroke-width="1.5"/>
+  <!-- Data disk circle -->
+  <circle cx="24" cy="34" r="4" stroke="#34E5FF" stroke-width="1.5" fill="none"/>
+  <circle cx="24" cy="34" r="1.5" fill="#34E5FF"/>
+</svg>

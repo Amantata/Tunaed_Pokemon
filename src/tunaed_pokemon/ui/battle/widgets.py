@@ -5,12 +5,13 @@ Widgets exported:
   • FieldStateBar  — shows weather, terrain, global effects, special field
   • CommandPanel   — move buttons + switch/flee actions
   • BattleLogPanel — scrolling text log of battle events
+
+All visual indicators use custom SVG icons (no emoji).
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -30,6 +31,7 @@ from tunaed_pokemon.engine.battle_state import BattlePokemonState, BattleSideSta
 from tunaed_pokemon.engine.field_state import FieldStateManager
 from tunaed_pokemon.models.enums import Weather, Terrain, SpecialField
 from tunaed_pokemon.utils.persistence import load_moves
+from tunaed_pokemon.ui.icon_manager import Icons, SMALL
 
 
 # ── HP Bar colour helper ──────────────────────────────────────────────────────
@@ -127,7 +129,13 @@ class PokemonPanel(QFrame):
             self._rank_lbl.setText("")
             return
 
-        self._name_lbl.setText("💀 " + ps.name if ps.is_fainted else ps.name)
+        if ps.is_fainted:
+            # Show fainted icon in the label instead of emoji
+            self._name_lbl.setText(ps.name)
+            self._name_lbl.setStyleSheet("color: #555; font-size: 14px; font-weight: bold; text-decoration: line-through;")
+        else:
+            self._name_lbl.setText(ps.name)
+            self._name_lbl.setStyleSheet("color: #E0E0E0; font-size: 14px; font-weight: bold;")
         self._level_lbl.setText(f"Lv.{ps.level}")
 
         types = ps.type1
@@ -236,38 +244,51 @@ class FieldStateBar(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
+    def _make_tag(self, text: str, icon, obj_name: str) -> QWidget:
+        """Build a compact tag widget: small SVG icon + text label."""
+        w = QWidget()
+        row = QHBoxLayout(w)
+        row.setContentsMargins(4, 2, 6, 2)
+        row.setSpacing(4)
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(icon.pixmap(SMALL))
+        row.addWidget(icon_lbl)
+        txt_lbl = QLabel(text)
+        txt_lbl.setObjectName(obj_name)
+        row.addWidget(txt_lbl)
+        w.setObjectName(obj_name + "_wrap")
+        return w
+
     def refresh(self, fs: FieldStateManager) -> None:
         self._clear()
-        tags: list[tuple[str, str]] = []   # (text, object_name)
+        tags: list[tuple[str, object, str]] = []   # (text, icon, object_name)
 
         if fs.weather != Weather.NONE.value:
             turns = f"({fs.weather_turns}T)" if fs.weather_turns > 0 else ""
-            tags.append((f"☁ {fs.weather}{turns}", "weather_tag"))
+            tags.append((f"{fs.weather}{turns}", Icons.WEATHER, "weather_tag"))
 
         if fs.terrain != Terrain.NONE.value:
             turns = f"({fs.terrain_turns}T)" if fs.terrain_turns > 0 else ""
-            tags.append((f"◈ {fs.terrain}{turns}", "field_tag"))
+            tags.append((f"{fs.terrain}{turns}", Icons.TERRAIN, "field_tag"))
 
         for name, turns in fs.global_effects.items():
-            tags.append((f"⊙ {name}({turns}T)", "field_tag"))
+            tags.append((f"{name}({turns}T)", Icons.GLOBAL_EFFECT, "field_tag"))
 
-        # Side 1 barriers
         for name, turns in fs.side1.barriers.items():
-            tags.append((f"[1]⚡{name}({turns}T)", "field_tag"))
-        # Side 2 barriers
+            tags.append((f"[1] {name}({turns}T)", Icons.BARRIER, "field_tag"))
         for name, turns in fs.side2.barriers.items():
-            tags.append((f"[2]⚡{name}({turns}T)", "field_tag"))
+            tags.append((f"[2] {name}({turns}T)", Icons.BARRIER, "field_tag"))
 
         if fs.special_field != SpecialField.NONE.value:
-            tags.append((f"★ {fs.special_field}", "field_tag"))
+            tags.append((fs.special_field, Icons.SPECIAL_FIELD, "field_tag"))
 
         if not tags:
-            tags.append(("필드: 이상 없음", "field_tag"))
-
-        for text, obj_name in tags:
-            lbl = QLabel(text)
-            lbl.setObjectName(obj_name)
-            self._layout.addWidget(lbl)
+            no_tag = QLabel("필드: 이상 없음")
+            no_tag.setObjectName("field_tag")
+            self._layout.addWidget(no_tag)
+        else:
+            for text, icon, obj_name in tags:
+                self._layout.addWidget(self._make_tag(text, icon, obj_name))
         self._layout.addStretch()
 
 
@@ -309,8 +330,10 @@ class CommandPanel(QWidget):
 
         # Switch / Flee row
         action_row = QHBoxLayout()
-        self._switch_btn = QPushButton("🔄 포켓몬 교대")
+        self._switch_btn = QPushButton("포켓몬 교대")
         self._switch_btn.setObjectName("toolbar_btn")
+        self._switch_btn.setIcon(Icons.SWITCH)
+        self._switch_btn.setIconSize(SMALL)
         self._switch_btn.clicked.connect(self.switch_requested)
         action_row.addWidget(self._switch_btn)
         action_row.addStretch()
