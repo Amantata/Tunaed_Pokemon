@@ -94,6 +94,13 @@ class BattlePokemonState:
     ability_name: str = ""    # current ability; may change mid-battle (SK-04)
     move_ids: list[str] = field(default_factory=list)
     is_fainted: bool = False
+    # Computed battle stats for damage calculation.
+    # Keys: hp, attack, defense, sp_atk, sp_def, speed (all int).
+    # Populated from Pokemon entity data when the battle is set up.
+    battle_stats: dict[str, int] = field(default_factory=lambda: {
+        "hp": 0, "attack": 50, "defense": 50,
+        "sp_atk": 50, "sp_def": 50, "speed": 50,
+    })
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -110,6 +117,7 @@ class BattlePokemonState:
             "ability_name": self.ability_name,
             "move_ids": list(self.move_ids),
             "is_fainted": self.is_fainted,
+            "battle_stats": dict(self.battle_stats),
         }
 
     @classmethod
@@ -121,7 +129,7 @@ class BattlePokemonState:
         known = {
             "pokemon_id", "name", "current_hp", "max_hp", "level",
             "type1", "type2", "rank_stages", "reinforcements",
-            "status", "ability_name", "move_ids", "is_fainted",
+            "status", "ability_name", "move_ids", "is_fainted", "battle_stats",
         }
         return cls(**{k: v for k, v in d.items() if k in known})
 

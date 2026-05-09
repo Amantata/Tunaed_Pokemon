@@ -32,27 +32,27 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| F-01 | Single and double battle 6v6 | Not started |
+| F-01 | Single and double battle 6v6 | In progress |
 | F-02 | Online battle support | Not started |
 | F-03 | **Runnable as a standalone executable (.exe etc.) with no separate installation** | Not started |
-| F-04 | Compare online battle approaches (executable server vs. domain browser) and recommend | Not started |
+| F-04 | Compare online battle approaches (executable server vs. domain browser) and recommend | Done (§9.7) |
 | F-05 | Real-time spectator mode during online battles | Not started |
 
 ### 2.2 Battle Features
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| B-01 | Save / load in-progress battle state | Not started |
-| B-02 | Store turn history for Undo / Redo navigation | Not started |
-| B-03 | Battle must include presentation effects (animations / event visuals) | Not started |
-| B-04 | Battle state must be directly editable during play to handle errors or execution mistakes | Not started |
+| B-01 | Save / load in-progress battle state | Done |
+| B-02 | Store turn history for Undo / Redo navigation | Done |
+| B-03 | Battle must include presentation effects (animations / event visuals) | In progress |
+| B-04 | Battle state must be directly editable during play to handle errors or execution mistakes | Done |
 
 ### 2.3 Party System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| P-01 | A party consists of a trainer + party members | Not started |
-| P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Not started |
+| P-01 | A party consists of a trainer + party members | Done |
+| P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Done |
 
 > **P-02 notes:**
 > - Regardless of party size, the battle is fundamentally a 6v6 full battle; this may change depending on the trainer's 고유포텐셜.
@@ -64,10 +64,10 @@
 | ID | Requirement | Status |
 |----|-------------|--------|
 | PT-01 | New potentials can be written as scripts within the program | Not started |
-| PT-02 | Existing potentials can be selected from a list | Not started |
+| PT-02 | Existing potentials can be selected from a list | In progress |
 | PT-03 | Potentials trigger automatically during the battle processing step when conditions are met | Not started |
 | PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity via script writing or an in-app editor | Not started |
-| PT-05 | Potential naming is strict — see note below | Not started |
+| PT-05 | Potential naming is strict — see note below | Done |
 | PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Not started |
 
 > **PT-05 naming rules:**
@@ -87,33 +87,33 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| SK-01 | 기술 (moves) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Not started |
+| SK-01 | 기술 (moves) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Done |
 | SK-02 | The 「기능확장」 potential allows use of moves not normally learnable; this feature must be supported | Not started |
 
 ### 2.6 Abilities (특성)
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| SK-03 | 특성 (abilities) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Not started |
-| SK-04 | Abilities (특성) can change mid-battle via moves, potentials, or other abilities | Not started |
+| SK-03 | 특성 (abilities) are selected from a pre-existing list; the list must be updatable within the program via an in-app editor (add, edit, delete entries) | Done |
+| SK-04 | Abilities (특성) can change mid-battle via moves, potentials, or other abilities | In progress |
 
 ### 2.7 Base Stats System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Not started |
-| ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Not started |
+| ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Done |
+| ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Done |
 
 ### 2.8 Field Environment System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FE-01 | Barrier moves (Reflect, Light Screen, etc.) state management | Not started |
-| FE-02 | Terrain moves (Grassy Terrain, etc.) state management | Not started |
-| FE-03 | Global field moves (Trick Room, Tailwind, etc.) state management | Not started |
-| FE-04 | Electric Field and other persistent field effects state management | Not started |
-| FE-05 | Weather (sun, rain, sand, hail, etc.) state management | Not started |
-| FE-06 | Special fields (alternate dimensions, arenas, etc.) state management | Not started |
+| FE-01 | Barrier moves (Reflect, Light Screen, etc.) state management | Done |
+| FE-02 | Terrain moves (Grassy Terrain, etc.) state management | Done |
+| FE-03 | Global field moves (Trick Room, Tailwind, etc.) state management | Done |
+| FE-04 | Electric Field and other persistent field effects state management | Done |
+| FE-05 | Weather (sun, rain, sand, hail, etc.) state management | Done |
+| FE-06 | Special fields (alternate dimensions, arenas, etc.) state management | Done |
 
 > **Important distinction**: 《필드》 (special arena-type field, FE-06) and 「필드」 (persistent field effect, FE-04) are different concepts and must be treated separately throughout the system.
 
@@ -121,26 +121,26 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| UI-01 | GUI-based interface | Not started |
-| UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Not started |
+| UI-01 | GUI-based interface | In progress |
+| UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Done |
 | UI-03 | Refer to provided screenshots (to be supplied) | Not started |
-| UI-04 | Battle screen and party/encyclopedia editor are **completely separate application paths** from the launcher. No cross-navigation during battle. | In progress |
-| UI-05 | All UI icons and decorative indicators must use **custom-designed image files** (SVG). Emoji / Unicode emoticons are prohibited. | In progress |
+| UI-04 | Battle screen and party/encyclopedia editor are **completely separate application paths** from the launcher. No cross-navigation during battle. | Done |
+| UI-05 | All UI icons and decorative indicators must use **custom-designed image files** (SVG). Emoji / Unicode emoticons are prohibited. | Done |
 
 ### 2.10 Image System
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| IMG-01 | Trainers must support an assignable image (illustration) | Not started |
-| IMG-02 | Party members (Pokémon) must support an assignable image | Not started |
+| IMG-01 | Trainers must support an assignable image (illustration) | In progress |
+| IMG-02 | Party members (Pokémon) must support an assignable image | In progress |
 | IMG-03 | Assigned images must be viewable in the encyclopedia, battle screen, and other relevant views | Not started |
 
 ### 2.11 Data Import / Export
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| EX-01 | Party data can be imported/exported as external JSON files; multiple files must be selectable at once | In progress |
-| EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | In progress |
+| EX-01 | Party data can be imported/exported as external JSON files; multiple files must be selectable at once | Done |
+| EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | Done |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 

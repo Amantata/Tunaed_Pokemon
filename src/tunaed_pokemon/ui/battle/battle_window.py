@@ -26,6 +26,8 @@ from PySide6.QtWidgets import (
 
 from tunaed_pokemon.engine.battle_state import BattleStateSnapshot, TurnHistory
 from tunaed_pokemon.engine.events import EventBus, BattleEvent, BattleEventType
+from tunaed_pokemon.engine.action_order import ActionEntry
+from tunaed_pokemon.engine.turn_pipeline import TurnPipeline
 from tunaed_pokemon.models.enums import BattleFormat
 from tunaed_pokemon.utils.persistence import (
     load_battle_state,
@@ -59,6 +61,7 @@ class BattleWindow(QMainWindow):
         self._history = TurnHistory()
         self._history.push(self._state)
         self._bus = EventBus()
+        self._pipeline = TurnPipeline(self._bus)
         self._moves = load_moves()
 
         self._build_ui()
@@ -243,14 +246,36 @@ class BattleWindow(QMainWindow):
 
     def _on_move_selected(self, move_id: str) -> None:
         mv = self._moves.get(move_id)
-        if mv:
-            name = mv.name
-        else:
-            name = move_id
-        actives = self._state.side1.active_pokemon
-        user_name = actives[0].name if actives else "플레이어"
-        self._bus.emit_message(f"▶ {user_name}이(가) 『{name}』을(를) 사용했다!")
-        # Save snapshot for undo
+        actives1 = self._state.side1.active_pokemon
+        if not actives1:
+            return
+        attacker = actives1[0]
+        if attacker.is_fainted:
+            return
+
+        if mv is None:
+            self._bus.emit_message(f"알 수 없는 기술: {move_id}")
+            return
+
+        # Build action for side 1 using the selected move
+        action = ActionEntry(side=1, pokemon=attacker, action_type="move", move=mv)
+
+        # Build a simple AI action for side 2 (first available move)
+        actives2 = self._state.side2.active_pokemon
+        opponent_actions: list[ActionEntry] = []
+        if actives2:
+            opp = actives2[0]
+            if not opp.is_fainted and opp.move_ids:
+                opp_mv = self._moves.get(opp.move_ids[0])
+                if opp_mv:
+                    opponent_actions.append(
+                        ActionEntry(side=2, pokemon=opp, action_type="move", move=opp_mv)
+                    )
+
+        new_state = self._pipeline.process_turn(
+            self._state, [action] + opponent_actions, self._moves
+        )
+        self._state = new_state
         self._history.push(self._state)
         self._refresh_all()
 
@@ -261,12 +286,9 @@ class BattleWindow(QMainWindow):
     # ── Turn processing ───────────────────────────────────────────────────────
 
     def _advance_turn(self) -> None:
-        self._state.turn_number += 1
-        expired = self._state.field_state.tick()
-        for msg in expired:
-            self._state.add_log(msg)
-            self._log_panel.append(msg)
-        self._bus.emit_message(f"═══ {self._state.turn_number}턴 시작 ═══")
+        """Advance to the next turn with no move actions (manual turn increment)."""
+        new_state = self._pipeline.process_turn(self._state, [], self._moves)
+        self._state = new_state
         self._history.push(self._state)
         self._refresh_all()
 

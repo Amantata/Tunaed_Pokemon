@@ -61,6 +61,7 @@ class MoveData:
     power: Optional[int] = None
     accuracy: Optional[int] = None
     pp: int = 5
+    priority: int = 0   # move priority; ≥5 = 가장 먼저, 1-4 = 상대보다 먼저, 0 = normal, <0 = last
     effect: str = ""
     effect_script: str = ""
 
@@ -68,12 +69,13 @@ class MoveData:
         return {
             "id": self.id, "name": self.name, "type": self.type,
             "category": self.category, "power": self.power, "accuracy": self.accuracy,
-            "pp": self.pp, "effect": self.effect, "effect_script": self.effect_script,
+            "pp": self.pp, "priority": self.priority,
+            "effect": self.effect, "effect_script": self.effect_script,
         }
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "MoveData":
-        known = {"id", "name", "type", "category", "power", "accuracy", "pp", "effect", "effect_script"}
+        known = {"id", "name", "type", "category", "power", "accuracy", "pp", "priority", "effect", "effect_script"}
         return cls(**{k: v for k, v in d.items() if k in known})
 
     @classmethod

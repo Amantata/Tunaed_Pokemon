@@ -53,6 +53,15 @@ def _build_side_state(party: Party | None, trainers: dict, pokemon: dict,
         iv = p.ivs
         ev = p.evs
         max_hp = calc_hp(bs.get("hp", 50), iv.hp, ev.hp, p.level)
+        # Compute all battle stats and store them for use by DamageCalculator
+        battle_stats = {
+            "hp":      max_hp,
+            "attack":  calc_stat(bs.get("attack",  50), iv.attack,  ev.attack,  p.level),
+            "defense": calc_stat(bs.get("defense", 50), iv.defense, ev.defense, p.level),
+            "sp_atk":  calc_stat(bs.get("sp_atk",  50), iv.sp_atk,  ev.sp_atk,  p.level),
+            "sp_def":  calc_stat(bs.get("sp_def",  50), iv.sp_def,  ev.sp_def,  p.level),
+            "speed":   calc_stat(bs.get("speed",   50), iv.speed,   ev.speed,   p.level),
+        }
         pokemon_states.append(BattlePokemonState(
             pokemon_id=p.id,
             name=p.name,
@@ -63,6 +72,7 @@ def _build_side_state(party: Party | None, trainers: dict, pokemon: dict,
             type2=p.type2,
             ability_name=p.ability_name,
             move_ids=list(p.move_ids),
+            battle_stats=battle_stats,
         ))
 
     return BattleSideState(
