@@ -1,0 +1,5 @@
+"""UI package."""
+
+from .styles import GLOBAL_STYLESHEET, PRIMARY, SECONDARY, DARK_BG, PANEL_BG
+
+__all__ = ["GLOBAL_STYLESHEET", "PRIMARY", "SECONDARY", "DARK_BG", "PANEL_BG"]
