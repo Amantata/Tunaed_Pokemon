@@ -395,3 +395,24 @@ class TestTurnPipeline:
         pipe   = TurnPipeline()
         new    = pipe.process_turn(state, [], {})
         assert any("턴" in entry for entry in new.log)
+
+    def test_battle_finishes_when_one_side_all_fainted(self):
+        state = self._make_state(p2_hp=1)
+        p1 = state.side1.pokemon_states[0]
+        move = _make_move(type_="노말", category="물리", power=80)
+        action = ActionEntry(side=1, pokemon=p1, action_type="move", move=move)
+        pipe = TurnPipeline()
+        new = pipe.process_turn(state, [action], {"m1": move})
+        assert new.battle_over is True
+        assert new.winner_side == 1
+        assert any("배틀 종료" in entry for entry in new.log)
+
+    def test_finished_battle_does_not_advance_turn(self):
+        state = self._make_state()
+        state.battle_over = True
+        state.winner_side = 1
+        pipe = TurnPipeline()
+        new = pipe.process_turn(state, [], {})
+        assert new.turn_number == state.turn_number
+        assert new.battle_over is True
+        assert new.winner_side == 1

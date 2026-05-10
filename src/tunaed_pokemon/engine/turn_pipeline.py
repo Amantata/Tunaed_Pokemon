@@ -51,6 +51,9 @@ class TurnPipeline:
     ) -> BattleStateSnapshot:
         """Process one complete turn and return a new (deep-copied) state."""
         state = state.deep_copy()
+        if state.battle_over:
+            return state
+
         state.turn_number += 1
 
         self._step1_start_of_turn(state)
@@ -58,6 +61,7 @@ class TurnPipeline:
         self._step4_execute(state, sorted_actions, move_data)
         self._step5_end_of_turn(state)
         self._step6_turn_end_effects(state)
+        self._finalize_battle_if_needed(state)
 
         return state
 
@@ -199,6 +203,25 @@ class TurnPipeline:
         return 0
 
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _finalize_battle_if_needed(self, state: BattleStateSnapshot) -> None:
+        """Finalize terminal state when one or both sides have all Pokémon fainted."""
+        side1_all_fainted = state.side1.is_all_fainted
+        side2_all_fainted = state.side2.is_all_fainted
+        if not side1_all_fainted and not side2_all_fainted:
+            return
+
+        state.battle_over = True
+        if side1_all_fainted and side2_all_fainted:
+            state.winner_side = None
+            self._log(state, "양측의 포켓몬이 모두 쓰러졌다! 무승부!")
+            return
+
+        winner_side = 2 if side1_all_fainted else 1
+        state.winner_side = winner_side
+        winner_state = state.side1 if winner_side == 1 else state.side2
+        winner_name = winner_state.trainer_name
+        self._log(state, f"배틀 종료! 승자: {winner_name} (플레이어 {winner_side})!")
 
     def _log(self, state: BattleStateSnapshot, msg: str) -> None:
         state.add_log(msg)
