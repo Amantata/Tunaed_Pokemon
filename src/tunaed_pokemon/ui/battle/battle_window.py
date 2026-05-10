@@ -63,6 +63,7 @@ class BattleWindow(QMainWindow):
         self._bus = EventBus()
         self._pipeline = TurnPipeline(self._bus)
         self._moves = load_moves()
+        self._result_announced = False
 
         self._build_ui()
         self._refresh_all()
@@ -234,9 +235,14 @@ class BattleWindow(QMainWindow):
 
         self._undo_btn.setEnabled(self._history.can_undo())
         self._redo_btn.setEnabled(self._history.can_redo())
+        self._next_turn_btn.setEnabled(not s.battle_over)
 
         # Log
         self._log_panel.set_log(s.log)
+
+        if s.battle_over:
+            self._cmd_panel.set_enabled(False)
+            self._announce_battle_result()
 
     # ── Event handlers ────────────────────────────────────────────────────────
 
@@ -245,6 +251,8 @@ class BattleWindow(QMainWindow):
         self._log_panel.append(event.message)
 
     def _on_move_selected(self, move_id: str) -> None:
+        if self._state.battle_over:
+            return
         mv = self._moves.get(move_id)
         actives1 = self._state.side1.active_pokemon
         if not actives1:
@@ -280,6 +288,8 @@ class BattleWindow(QMainWindow):
         self._refresh_all()
 
     def _on_switch_requested(self) -> None:
+        if self._state.battle_over:
+            return
         self._bus.emit_message("포켓몬 교대 요청 (구현 예정)")
         self._refresh_all()
 
@@ -287,6 +297,8 @@ class BattleWindow(QMainWindow):
 
     def _advance_turn(self) -> None:
         """Advance to the next turn with no move actions (manual turn increment)."""
+        if self._state.battle_over:
+            return
         new_state = self._pipeline.process_turn(self._state, [], self._moves)
         self._state = new_state
         self._history.push(self._state)
@@ -312,6 +324,7 @@ class BattleWindow(QMainWindow):
             import json as _json
             data = _json.loads(open(path, encoding="utf-8").read())
             self._state = BattleStateSnapshot.from_dict(data)
+            self._result_announced = False
             self._history.push(self._state)
             self._refresh_all()
             self._status_bar.showMessage(f"불러오기 완료: {path}", 3000)
@@ -341,6 +354,22 @@ class BattleWindow(QMainWindow):
         dlg = BattleEditorDialog(self._state, self)
         if dlg.exec() == BattleEditorDialog.DialogCode.Accepted:
             self._state = dlg.get_state()
+            self._result_announced = False
             self._history.push(self._state)
             self._refresh_all()
             self._status_bar.showMessage("배틀 상태가 편집되었습니다.", 3000)
+
+    def _announce_battle_result(self) -> None:
+        if self._result_announced:
+            return
+        self._result_announced = True
+        if self._state.winner_side == 1:
+            winner_name = self._state.side1.trainer_name
+            message = f"배틀 종료! 승자: {winner_name} (플레이어 1)"
+        elif self._state.winner_side == 2:
+            winner_name = self._state.side2.trainer_name
+            message = f"배틀 종료! 승자: {winner_name} (플레이어 2)"
+        else:
+            message = "배틀 종료! 무승부"
+        self._status_bar.showMessage(message, 5000)
+        QMessageBox.information(self, "배틀 종료", message)

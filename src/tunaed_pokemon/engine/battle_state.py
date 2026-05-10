@@ -191,6 +191,8 @@ class BattleStateSnapshot:
     )
     field_state: FieldStateManager = field(default_factory=FieldStateManager)
     log: list[str] = field(default_factory=list)
+    battle_over: bool = False
+    winner_side: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -200,6 +202,8 @@ class BattleStateSnapshot:
             "side2": self.side2.to_dict(),
             "field_state": self.field_state.to_dict(),
             "log": list(self.log),
+            "battle_over": self.battle_over,
+            "winner_side": self.winner_side,
         }
 
     @classmethod
@@ -211,6 +215,9 @@ class BattleStateSnapshot:
         obj.side2 = BattleSideState.from_dict(d.get("side2", {"trainer_id": None, "trainer_name": "플레이어 2", "party_id": None}))
         obj.field_state = FieldStateManager.from_dict(d.get("field_state", {}))
         obj.log = list(d.get("log", []))
+        obj.battle_over = bool(d.get("battle_over", False))
+        winner_side = d.get("winner_side")
+        obj.winner_side = winner_side if winner_side in (1, 2, None) else None
         return obj
 
     def deep_copy(self) -> "BattleStateSnapshot":

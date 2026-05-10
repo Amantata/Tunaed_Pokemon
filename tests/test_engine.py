@@ -93,10 +93,14 @@ class TestBattleStateSnapshot:
 
     def test_round_trip_serialisation(self):
         snap = self._make_snapshot()
+        snap.battle_over = True
+        snap.winner_side = 1
         d = snap.to_dict()
         snap2 = BattleStateSnapshot.from_dict(d)
         assert snap2.turn_number == 1
         assert snap2.side1.pokemon_states[0].name == "テスト"
+        assert snap2.battle_over is True
+        assert snap2.winner_side == 1
 
     def test_hp_fraction(self):
         ps = BattlePokemonState(pokemon_id="x", name="X", current_hp=25, max_hp=100)
