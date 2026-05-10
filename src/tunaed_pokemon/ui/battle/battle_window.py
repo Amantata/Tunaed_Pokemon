@@ -324,7 +324,7 @@ class BattleWindow(QMainWindow):
             import json as _json
             data = _json.loads(open(path, encoding="utf-8").read())
             self._state = BattleStateSnapshot.from_dict(data)
-            self._result_announced = False
+            self._reset_result_announcement_flag()
             self._history.push(self._state)
             self._refresh_all()
             self._status_bar.showMessage(f"불러오기 완료: {path}", 3000)
@@ -354,22 +354,27 @@ class BattleWindow(QMainWindow):
         dlg = BattleEditorDialog(self._state, self)
         if dlg.exec() == BattleEditorDialog.DialogCode.Accepted:
             self._state = dlg.get_state()
-            self._result_announced = False
+            self._reset_result_announcement_flag()
             self._history.push(self._state)
             self._refresh_all()
             self._status_bar.showMessage("배틀 상태가 편집되었습니다.", 3000)
+
+    def _reset_result_announcement_flag(self) -> None:
+        self._result_announced = False
+
+    def _battle_result_message(self, state: BattleStateSnapshot) -> str:
+        """Build the final battle result text from the snapshot winner_side."""
+        if state.winner_side == 1:
+            winner_name = state.side1.trainer_name
+        elif state.winner_side == 2:
+            winner_name = state.side2.trainer_name
+        else:
+            return "배틀 종료! 무승부"
+        return f"배틀 종료! 승자: {winner_name} (플레이어 {state.winner_side})"
 
     def _announce_battle_result(self) -> None:
         if self._result_announced:
             return
         self._result_announced = True
-        if self._state.winner_side == 1:
-            winner_name = self._state.side1.trainer_name
-            message = f"배틀 종료! 승자: {winner_name} (플레이어 1)"
-        elif self._state.winner_side == 2:
-            winner_name = self._state.side2.trainer_name
-            message = f"배틀 종료! 승자: {winner_name} (플레이어 2)"
-        else:
-            message = "배틀 종료! 무승부"
+        message = self._battle_result_message(self._state)
         self._status_bar.showMessage(message, 5000)
-        QMessageBox.information(self, "배틀 종료", message)

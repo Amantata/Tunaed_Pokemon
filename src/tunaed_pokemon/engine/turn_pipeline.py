@@ -205,6 +205,7 @@ class TurnPipeline:
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _finalize_battle_if_needed(self, state: BattleStateSnapshot) -> None:
+        """Finalize terminal state when one or both sides have all Pokémon fainted."""
         side1_all_fainted = state.side1.is_all_fainted
         side2_all_fainted = state.side2.is_all_fainted
         if not side1_all_fainted and not side2_all_fainted:
@@ -218,8 +219,9 @@ class TurnPipeline:
 
         winner_side = 2 if side1_all_fainted else 1
         state.winner_side = winner_side
-        winner_name = state.side1.trainer_name if winner_side == 1 else state.side2.trainer_name
-        self._log(state, f"배틀 종료! 승자: {winner_name} (플레이어 {winner_side})")
+        winner_state = state.side1 if winner_side == 1 else state.side2
+        winner_name = winner_state.trainer_name
+        self._log(state, f"배틀 종료! 승자: {winner_name} (플레이어 {winner_side})!")
 
     def _log(self, state: BattleStateSnapshot, msg: str) -> None:
         state.add_log(msg)
