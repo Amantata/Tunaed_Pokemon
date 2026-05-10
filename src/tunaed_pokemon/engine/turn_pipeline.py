@@ -151,7 +151,7 @@ class TurnPipeline:
         if move is None:
             return
 
-        # Client requirement: PP concept is deferred for now.
+        # ADD-01: PP concept is deferred for now.
         # All moves are treated as having unlimited PP (no decrement).
 
         defender_side = state.side2 if action.side == 1 else state.side1

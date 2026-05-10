@@ -358,6 +358,20 @@ class TestPPUnlimited:
         ray_rest = restored.side1.pokemon_states[0]
         assert ray_rest.pp_remaining == ray_orig.pp_remaining
 
+    def test_pp_stays_constant_across_multiple_turns(self):
+        state, moves = _make_battle()
+        pipe = TurnPipeline()
+
+        current = state
+        for _ in range(3):
+            ray = current.side1.pokemon_states[0]
+            action = ActionEntry(side=1, pokemon=ray, action_type="move",
+                                 move=moves["hitblade"])
+            current = pipe.process_turn(current, [action], moves)
+
+        ray_after = current.side1.pokemon_states[0]
+        assert ray_after.pp_remaining[0] == 10
+
 
 # ── 다턴 배틀 로그 재생 테스트 ───────────────────────────────────────────────
 
