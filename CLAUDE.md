@@ -45,7 +45,7 @@
 | B-01 | Save / load in-progress battle state — **snapshot taken at the start of each turn only** | Not started |
 | B-02 | Store turn history for Undo / Redo navigation — **Undo/Redo granularity is per-event (one action at a time), not per-turn** | Not started |
 | B-03 | Battle must include presentation effects (animations / event visuals) | Not started |
-| B-04 | Battle state must be directly editable during play via a **separate "Battle Edit Mode" screen** (not an overlay); editable fields: HP, status conditions, rank stages / reinforcement multipliers, weather/terrain/field, potential trigger states, PP, active Pokémon (on-field) — additional fields may be added during testing | Not started |
+| B-04 | Battle state must be directly editable during play via a **separate "Battle Edit Mode" screen** (not an overlay); editable fields: HP, status conditions, rank stages / reinforcement multipliers, weather/terrain/field, potential trigger states, active Pokémon (on-field) — additional fields may be added during testing | Not started |
 | AX-07 | Battle settings must support 4 modes for `명중체감치 정상화` (off / identical situation only / same accuracy only / all sequentially) | Not started |
 | AX-09 | Support both critical correction methods: command-rank gap based and absolute-value based (`A` gives `C+1`) | Not started |
 
@@ -132,8 +132,6 @@
 | UI-01 | GUI-based interface | Not started |
 | UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Not started |
 | UI-03 | Refer to provided screenshots (to be supplied) | Not started |
-| UI-04 | Battle screen and party/encyclopedia editor are **completely separate application paths** from the launcher. No cross-navigation during battle. | Done |
-| UI-05 | All UI icons and decorative indicators must use **custom-designed image files** (SVG). Emoji / Unicode emoticons are prohibited. | Done |
 
 ### 2.10 Image System
 
@@ -151,6 +149,10 @@
 | EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | Not started |
 
 ### 2.12 Client Additional Requirements
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| ADD-01 | PP concept is deferred; for now all moves are handled as **unlimited PP** | In progress |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 

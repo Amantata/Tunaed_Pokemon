@@ -8,7 +8,7 @@ docs/트레이너 예제.md의 달크 트레이너 파티 (섬도희 레이 등)
   - BattleEventHistory 이벤트 기록 (B-02)
   - TurnHistory 턴 시작 스냅샷 (B-01)
   - 복수 턴 배틀 로그 재생 / 결과 검증
-  - pp_remaining 필드 초기화 및 차감
+  - pp_remaining 필드 초기화 및 무제한 정책(미차감)
   - BattleStateSnapshot 직렬화/역직렬화 라운드트립
 """
 
@@ -332,10 +332,10 @@ class TestTurnStartSnapshot:
             assert snapshots_before[i] <= snapshots_before[i - 1]
 
 
-# ── PP 소비 테스트 ────────────────────────────────────────────────────────────
+# ── PP 무제한 정책 테스트 ─────────────────────────────────────────────────────
 
-class TestPPConsumed:
-    def test_pp_decreases_when_move_used(self):
+class TestPPUnlimited:
+    def test_pp_does_not_decrease_when_move_used(self):
         state, moves = _make_battle()
         pipe = TurnPipeline()
 
@@ -348,7 +348,7 @@ class TestPPConsumed:
         new_state = pipe.process_turn(state, [action], moves)
 
         ray_after = new_state.side1.pokemon_states[0]
-        assert ray_after.pp_remaining[0] == 9   # 1 차감
+        assert ray_after.pp_remaining[0] == 10   # 무제한 정책으로 미차감
 
     def test_pp_round_trip(self):
         state, _ = _make_battle()
