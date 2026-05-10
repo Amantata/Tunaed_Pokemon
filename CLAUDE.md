@@ -55,7 +55,6 @@
 |----|-------------|--------|
 | P-01 | A party consists of a trainer + party members | Not started |
 | P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Not started |
-| AX-03 | Apply this game's setting distinction for half/human context (Pokémon as psychic lifeforms, humans as trainer-specialized Pokémon) | Not started |
 
 > **P-02 notes:**
 > - Regardless of party size, the battle is fundamentally a 6v6 full battle; this may change depending on the trainer's 고유포텐셜.
@@ -72,7 +71,6 @@
 | PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity via script writing or an in-app editor | Not started |
 | PT-05 | Potential naming is strict — see note below | Not started |
 | PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Not started |
-| AX-02 | Treat `천부의 재능` assignment scope as planet-level | Not started |
 | AX-04 | Battle settings must allow selecting which defense-potential categories are used | Not started |
 | AX-05 | Battle settings must allow selecting which potential categories can be pierced by critical hits (default: 완화계 only) | Not started |
 | AX-06 | Data model must allow up to 2 exclusive potentials per Pokémon | Not started |
