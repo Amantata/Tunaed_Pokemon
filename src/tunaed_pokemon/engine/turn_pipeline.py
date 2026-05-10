@@ -152,7 +152,7 @@ class TurnPipeline:
             return
 
         # Deduct PP if tracked
-        if move_id := (move.id if move else None):
+        if move_id := move.id:
             try:
                 idx = attacker.move_ids.index(move_id)
                 if idx < len(attacker.pp_remaining) and attacker.pp_remaining[idx] > 0:
