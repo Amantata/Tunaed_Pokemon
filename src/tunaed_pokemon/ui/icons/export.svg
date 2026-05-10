@@ -1,0 +1,14 @@
+<!-- export.svg — 위쪽 화살표로 파일 내보내기 / Arrow from box for "내보내기" -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Box / tray -->
+  <path d="M8 30 L8 40 Q8 42 10 42 L38 42 Q40 42 40 40 L40 30"
+        fill="#0F3460" stroke="#34E5FF" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Tray opening top edge -->
+  <line x1="8" y1="30" x2="18" y2="30" stroke="#34E5FF" stroke-width="2"/>
+  <line x1="30" y1="30" x2="40" y2="30" stroke="#34E5FF" stroke-width="2"/>
+  <!-- Up arrow shaft -->
+  <line x1="24" y1="28" x2="24" y2="8" stroke="#FFE66D" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Arrow head -->
+  <polyline points="16,15 24,7 32,15" stroke="#FFE66D" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

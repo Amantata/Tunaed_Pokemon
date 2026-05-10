@@ -1,0 +1,9 @@
+<!-- redo.svg — 시계 방향 다시실행 화살표 / Clockwise redo arrow -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Curved arc (clockwise, 270 degrees) -->
+  <path d="M10 24 A14 14 0 1 1 24 38" stroke="#34E5FF" stroke-width="3"
+        stroke-linecap="round" fill="none"/>
+  <!-- Arrow head at the start (top-left) -->
+  <polyline points="16,10 10,16 4,10" stroke="#34E5FF" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

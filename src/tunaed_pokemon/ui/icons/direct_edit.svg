@@ -1,0 +1,17 @@
+<!-- direct_edit.svg — 렌치/스패너 (배틀 직접 편집) / Wrench for battle state editor -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Wrench handle -->
+  <rect x="18" y="20" width="18" height="9" rx="2"
+        transform="rotate(45 24 24)" fill="#0F3460" stroke="#34E5FF" stroke-width="2"/>
+  <!-- Wrench head (open end) -->
+  <path d="M8 14 Q6 10 10 8 Q18 6 20 14 L14 20 Z"
+        fill="#0F3460" stroke="#34E5FF" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M14 20 L20 14 Q24 12 26 16" stroke="#34E5FF" stroke-width="2"
+        stroke-linecap="round" fill="none"/>
+  <!-- Wrench tail end (closed circle) -->
+  <path d="M38 34 Q42 38 38 40 Q30 42 28 34 L34 28 Z"
+        fill="#0F3460" stroke="#34E5FF" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Accent dot on wrench -->
+  <circle cx="12" cy="12" r="2" fill="#FFE66D"/>
+  <circle cx="36" cy="36" r="2" fill="#FFE66D"/>
+</svg>
