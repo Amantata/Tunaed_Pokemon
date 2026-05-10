@@ -142,6 +142,23 @@
 | EX-01 | Party data can be imported/exported as external JSON files; multiple files must be selectable at once | Not started |
 | EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | Not started |
 
+### 2.12 Client Additional Requirements
+
+> Source: all sections marked `추가사항` in `docs/어장식 포켓몬 추가요소 설명.txt`
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| AX-01 | Treat `기술이 급소에 맞기 쉬워진다 (C+1)` as a persistent C+1 critical effect, not a stat rank increase | Not started |
+| AX-02 | Treat `천부의 재능` assignment scope as planet-level | Not started |
+| AX-03 | Apply this game's setting distinction for half/human context (Pokémon as psychic lifeforms, humans as trainer-specialized Pokémon) | Not started |
+| AX-04 | Battle settings must allow selecting which defense-potential categories are used | Not started |
+| AX-05 | Battle settings must allow selecting which potential categories can be pierced by critical hits (default: 완화계 only) | Not started |
+| AX-06 | Data model must allow up to 2 exclusive potentials per Pokémon | Not started |
+| AX-07 | Battle settings must support 4 modes for `명중체감치 정상화` (off / identical situation only / same accuracy only / all sequentially) | Not started |
+| AX-08 | Battle settings must allow priority configuration for innate-potential conflicts (e.g., 능력형 이계 vs 통솔형 필드형성) | Not started |
+| AX-09 | Support both critical correction methods: command-rank gap based and absolute-value based (`A` gives `C+1`) | Not started |
+| AX-10 | Battle settings must allow toggling variable HP behavior | Not started |
+
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 
 ---
