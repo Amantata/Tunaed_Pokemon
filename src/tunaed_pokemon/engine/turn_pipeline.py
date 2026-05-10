@@ -140,6 +140,8 @@ class TurnPipeline:
         action: ActionEntry,
         move_data: dict[str, MoveData],
     ) -> None:
+        # Resolve attacker from the copied runtime snapshot, not from the incoming
+        # ActionEntry reference, so all mutations apply to the returned state.
         attacker_side = state.side1 if action.side == 1 else state.side2
         attackers = attacker_side.active_pokemon
         if not attackers:

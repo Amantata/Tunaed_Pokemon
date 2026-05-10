@@ -191,7 +191,7 @@ class TestBattleEventHistory:
         # 데미지가 들어갔는지 확인
         assert new_state.side2.pokemon_states[0].current_hp < opp_hp_before
 
-        # Undo — 이동 사용 전 상태로 복원
+        # Undo — 행동 사용 전 상태로 복원
         restored = history.undo()
         assert restored is not None
         # 복원된 상태는 데미지 전 HP를 갖는다
