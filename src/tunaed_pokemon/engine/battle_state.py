@@ -101,6 +101,9 @@ class BattlePokemonState:
         "hp": 0, "attack": 50, "defense": 50,
         "sp_atk": 50, "sp_def": 50, "speed": 50,
     })
+    # PP remaining per move slot (index aligns with move_ids).
+    # Populated from MoveData.pp when the battle is set up.  Edited via B-04.
+    pp_remaining: list[int] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -118,6 +121,7 @@ class BattlePokemonState:
             "move_ids": list(self.move_ids),
             "is_fainted": self.is_fainted,
             "battle_stats": dict(self.battle_stats),
+            "pp_remaining": list(self.pp_remaining),
         }
 
     @classmethod
@@ -130,6 +134,7 @@ class BattlePokemonState:
             "pokemon_id", "name", "current_hp", "max_hp", "level",
             "type1", "type2", "rank_stages", "reinforcements",
             "status", "ability_name", "move_ids", "is_fainted", "battle_stats",
+            "pp_remaining",
         }
         return cls(**{k: v for k, v in d.items() if k in known})
 
@@ -276,3 +281,102 @@ class TurnHistory:
         obj._snapshots = [BattleStateSnapshot.from_dict(s) for s in d.get("snapshots", [])]
         obj._index = d.get("index", -1)
         return obj
+
+
+# ── BattleEventHistory (B-02: per-event undo/redo) ───────────────────────────
+
+from .events import BattleEvent  # noqa: E402  (avoid circular at module top)
+
+
+@dataclass
+class _EventRecord:
+    """Immutable snapshot taken BEFORE the corresponding event was applied."""
+    state: BattleStateSnapshot
+    event: BattleEvent
+
+
+class BattleEventHistory:
+    """Per-event undo / redo stack (B-02).
+
+    Usage inside TurnPipeline::
+
+        history.record(current_state, event)   # before applying the change
+        # … apply the change to current_state …
+
+    Then in the UI::
+
+        state = history.undo()   # restore state before the last event
+    """
+
+    def __init__(self) -> None:
+        self._records: list[_EventRecord] = []
+        self._index: int = -1
+
+    def record(self, state_before: BattleStateSnapshot, event: BattleEvent) -> None:
+        """Record a (state, event) pair, discarding any future redo entries."""
+        self._records = self._records[: self._index + 1]
+        self._records.append(_EventRecord(state=state_before.deep_copy(), event=event))
+        self._index = len(self._records) - 1
+
+    def can_undo(self) -> bool:
+        return self._index >= 0
+
+    def can_redo(self) -> bool:
+        return self._index < len(self._records) - 1
+
+    def undo(self) -> Optional[BattleStateSnapshot]:
+        """Return the state BEFORE the last recorded event and step back."""
+        if not self.can_undo():
+            return None
+        snap = self._records[self._index].state.deep_copy()
+        self._index -= 1
+        return snap
+
+    def redo(self) -> Optional[BattleStateSnapshot]:
+        """Advance to the next event record and return its before-state.
+
+        Note: re-applying the event itself is the responsibility of the caller
+        (replay from event log).  For simplicity the UI should call
+        ``redo_state()`` which returns the state *after* the event by
+        re-executing via the existing snapshot mechanism.
+        """
+        if not self.can_redo():
+            return None
+        self._index += 1
+        return self._records[self._index].state.deep_copy()
+
+    @property
+    def current_event(self) -> Optional[BattleEvent]:
+        """The event at the current redo cursor (None if at the end)."""
+        next_idx = self._index + 1
+        if next_idx < len(self._records):
+            return self._records[next_idx].event
+        return None
+
+    def clear(self) -> None:
+        self._records.clear()
+        self._index = -1
+
+    def event_log(self) -> list[BattleEvent]:
+        """Ordered list of all recorded events (for the event timeline tab)."""
+        return [r.event for r in self._records]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "records": [
+                {"state": r.state.to_dict(), "event": r.event.to_dict()}
+                for r in self._records
+            ],
+            "index": self._index,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "BattleEventHistory":
+        obj = cls()
+        for rec in d.get("records", []):
+            state = BattleStateSnapshot.from_dict(rec["state"])
+            event = BattleEvent.from_dict(rec["event"])
+            obj._records.append(_EventRecord(state=state, event=event))
+        obj._index = d.get("index", -1)
+        return obj
+
