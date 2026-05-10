@@ -46,6 +46,8 @@
 | B-02 | Store turn history for Undo / Redo navigation | Not started |
 | B-03 | Battle must include presentation effects (animations / event visuals) | Not started |
 | B-04 | Battle state must be directly editable during play to handle errors or execution mistakes | Not started |
+| AX-07 | Battle settings must support 4 modes for `명중체감치 정상화` (off / identical situation only / same accuracy only / all sequentially) | Not started |
+| AX-09 | Support both critical correction methods: command-rank gap based and absolute-value based (`A` gives `C+1`) | Not started |
 
 ### 2.3 Party System
 
@@ -53,6 +55,7 @@
 |----|-------------|--------|
 | P-01 | A party consists of a trainer + party members | Not started |
 | P-02 | Default 1 trainer + 6 party members; party size is variable (1–8) depending on context | Not started |
+| AX-03 | Apply this game's setting distinction for half/human context (Pokémon as psychic lifeforms, humans as trainer-specialized Pokémon) | Not started |
 
 > **P-02 notes:**
 > - Regardless of party size, the battle is fundamentally a 6v6 full battle; this may change depending on the trainer's 고유포텐셜.
@@ -69,6 +72,11 @@
 | PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity via script writing or an in-app editor | Not started |
 | PT-05 | Potential naming is strict — see note below | Not started |
 | PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Not started |
+| AX-02 | Treat `천부의 재능` assignment scope as planet-level | Not started |
+| AX-04 | Battle settings must allow selecting which defense-potential categories are used | Not started |
+| AX-05 | Battle settings must allow selecting which potential categories can be pierced by critical hits (default: 완화계 only) | Not started |
+| AX-06 | Data model must allow up to 2 exclusive potentials per Pokémon | Not started |
+| AX-08 | Battle settings must allow priority configuration for innate-potential conflicts (e.g., 능력형 이계 vs 통솔형 필드형성) | Not started |
 
 > **PT-05 naming rules:**
 > - **고유포텐셜** (Unique Potential): A collective term for potentials uniquely held by each *trainer*. Every trainer has different 고유포텐셜.
@@ -103,6 +111,8 @@
 |----|-------------|--------|
 | ST-01 | Individual Values (개체치) exist; Effort Values (노력치) exist but default to 0 | Not started |
 | ST-02 | Terminology: 「강화」 (reinforcement) = multiplier applied; 「상승」 (increase) = rank stage change — these must be strictly distinguished | Not started |
+| AX-01 | Treat `기술이 급소에 맞기 쉬워진다 (C+1)` as a persistent C+1 critical effect, not a stat rank increase | Not started |
+| AX-10 | Battle settings must allow toggling variable HP behavior | Not started |
 
 ### 2.8 Field Environment System
 
@@ -143,21 +153,6 @@
 | EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | Not started |
 
 ### 2.12 Client Additional Requirements
-
-> Source: all sections marked `추가사항` in `docs/어장식 포켓몬 추가요소 설명.txt`
-
-| ID | Requirement | Status |
-|----|-------------|--------|
-| AX-01 | Treat `기술이 급소에 맞기 쉬워진다 (C+1)` as a persistent C+1 critical effect, not a stat rank increase | Not started |
-| AX-02 | Treat `천부의 재능` assignment scope as planet-level | Not started |
-| AX-03 | Apply this game's setting distinction for half/human context (Pokémon as psychic lifeforms, humans as trainer-specialized Pokémon) | Not started |
-| AX-04 | Battle settings must allow selecting which defense-potential categories are used | Not started |
-| AX-05 | Battle settings must allow selecting which potential categories can be pierced by critical hits (default: 완화계 only) | Not started |
-| AX-06 | Data model must allow up to 2 exclusive potentials per Pokémon | Not started |
-| AX-07 | Battle settings must support 4 modes for `명중체감치 정상화` (off / identical situation only / same accuracy only / all sequentially) | Not started |
-| AX-08 | Battle settings must allow priority configuration for innate-potential conflicts (e.g., 능력형 이계 vs 통솔형 필드형성) | Not started |
-| AX-09 | Support both critical correction methods: command-rank gap based and absolute-value based (`A` gives `C+1`) | Not started |
-| AX-10 | Battle settings must allow toggling variable HP behavior | Not started |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 
