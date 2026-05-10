@@ -10,10 +10,14 @@ src/tunaed_pokemon.egg-info/entry_points.txt
 src/tunaed_pokemon.egg-info/requires.txt
 src/tunaed_pokemon.egg-info/top_level.txt
 src/tunaed_pokemon/engine/__init__.py
+src/tunaed_pokemon/engine/action_order.py
 src/tunaed_pokemon/engine/battle_state.py
+src/tunaed_pokemon/engine/damage_calc.py
 src/tunaed_pokemon/engine/events.py
 src/tunaed_pokemon/engine/field_state.py
 src/tunaed_pokemon/engine/status.py
+src/tunaed_pokemon/engine/turn_pipeline.py
+src/tunaed_pokemon/engine/type_chart.py
 src/tunaed_pokemon/models/__init__.py
 src/tunaed_pokemon/models/enums.py
 src/tunaed_pokemon/models/party.py
@@ -37,6 +41,7 @@ src/tunaed_pokemon/ui/editor/trainer_tab.py
 src/tunaed_pokemon/utils/__init__.py
 src/tunaed_pokemon/utils/persistence.py
 src/tunaed_pokemon/utils/stat_calc.py
+tests/test_battle_engine.py
 tests/test_engine.py
 tests/test_icons.py
 tests/test_models.py
