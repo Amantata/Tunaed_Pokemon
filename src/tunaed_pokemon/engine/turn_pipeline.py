@@ -158,6 +158,8 @@ class TurnPipeline:
                 if idx < len(attacker.pp_remaining) and attacker.pp_remaining[idx] > 0:
                     attacker.pp_remaining[idx] -= 1
             except ValueError:
+                # UI action can provide a move object that is not present in the
+                # runtime move_id slot list; skip PP consumption in that case.
                 pass
 
         defender_side = state.side2 if action.side == 1 else state.side1

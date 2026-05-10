@@ -7,6 +7,7 @@ The battle and the editor are completely separate application paths.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Qt
@@ -321,11 +322,8 @@ class BattleWindow(QMainWindow):
             self, "배틀 상태 저장", "battle_save.json", "JSON (*.json)"
         )
         if path:
-            # Save compact JSON (no indent) for B-06 optimization
-            import json as _json
-            data = _json.dumps(self._state.to_dict(), ensure_ascii=False, separators=(",", ":"))
-            import pathlib
-            pathlib.Path(path).write_text(data, encoding="utf-8")
+            data = json.dumps(self._state.to_dict(), ensure_ascii=False, separators=(",", ":"))
+            Path(path).write_text(data, encoding="utf-8")
             self._status_bar.showMessage(f"저장 완료: {path}", 3000)
 
     def _load_state(self) -> None:
@@ -335,8 +333,7 @@ class BattleWindow(QMainWindow):
         if not path:
             return
         try:
-            import json as _json
-            data = _json.loads(open(path, encoding="utf-8").read())
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
             self._state = BattleStateSnapshot.from_dict(data)
             self._reset_result_announcement_flag()
             self._event_history.clear()

@@ -336,9 +336,7 @@ class BattleEventHistory:
         """Advance to the next event record and return its before-state.
 
         Note: re-applying the event itself is the responsibility of the caller
-        (replay from event log).  For simplicity the UI should call
-        ``redo_state()`` which returns the state *after* the event by
-        re-executing via the existing snapshot mechanism.
+        (for example, by replaying the recorded event log).
         """
         if not self.can_redo():
             return None
@@ -379,4 +377,3 @@ class BattleEventHistory:
             obj._records.append(_EventRecord(state=state, event=event))
         obj._index = d.get("index", -1)
         return obj
-
