@@ -140,7 +140,11 @@ class TurnPipeline:
         action: ActionEntry,
         move_data: dict[str, MoveData],
     ) -> None:
-        attacker = action.pokemon
+        attacker_side = state.side1 if action.side == 1 else state.side2
+        attackers = attacker_side.active_pokemon
+        if not attackers:
+            return
+        attacker = attackers[0]
         if attacker.is_fainted:
             return
         move = action.move
@@ -304,4 +308,3 @@ class TurnPipeline:
         state.add_log(msg)
         event = BattleEvent(event_type, message=msg)
         self._record_and_emit(state, event)
-
