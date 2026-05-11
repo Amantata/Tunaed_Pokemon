@@ -1,8 +1,11 @@
-"""Demo seed data — creates two ready-made 6v6 parties for quick-start battles.
+"""Demo seed data from docs — creates 4 ready-made parties for quick-start.
 
-Call ``create_demo_parties()`` once to populate the data directory with two
-named parties (레드 팀 / 블루 팀) each containing 6 Pokémon and a shared set of
-demo moves.  Safe to call multiple times: existing entries are preserved.
+Target parties:
+- docs/트레이너 예제.md : 예제1, 예제2 (2개 파티)
+- docs/트레이너 샘플 2.md : 1개 파티
+- docs/트레이너 샘플 3.md : 1개 파티
+
+Safe to call multiple times: existing trainer/party/pokémon entries are reused.
 """
 
 from __future__ import annotations
@@ -11,10 +14,13 @@ import uuid
 
 from tunaed_pokemon.models.pokemon import IVs, MoveData, Pokemon
 from tunaed_pokemon.models.party import Party
+from tunaed_pokemon.models.trainer import Trainer
 from tunaed_pokemon.utils.persistence import (
     load_all_parties,
     load_all_pokemon,
+    load_all_trainers,
     load_moves,
+    save_trainer,
     save_moves,
     save_party,
     save_pokemon,
@@ -35,150 +41,126 @@ _DEMO_MOVES: list[dict] = [
 
 # ── Demo Pokémon templates (name, type1, type2, base_stats, move_set) ────────
 
-_DEMO_POKEMON_TEMPLATES: list[dict] = [
-    # Red team
+_PARTY_SPECS: list[dict] = [
     {
-        "name": "파이리",   "type1": "불꽃", "type2": None,
-        "stats": {"hp": 39, "attack": 52, "defense": 43, "sp_atk": 60, "sp_def": 50, "speed": 65},
-        "moves": ["demo_ember", "demo_slash", "demo_tackle", "demo_quick"],
-        "team": "red",
+        "key": "trainer_example_1",
+        "party_name": "문서 데모 - 트레이너 예제 1 (달크)",
+        "trainer_name": "달크",
+        "members": [
+            {"name": "섬도희 레이", "type1": "노말", "type2": "비행"},
+            {"name": "비라 릴리에", "type1": "불꽃", "type2": "드래곤"},
+            {"name": "하나즈키", "type1": "물", "type2": None},
+            {"name": "윙 건담", "type1": "강철", "type2": "비행"},
+            {"name": "모르포", "type1": "전기", "type2": "페어리"},
+            {"name": "마스카나", "type1": "풀", "type2": "악"},
+            {"name": "유령 기수", "type1": "땅", "type2": "고스트"},
+            {"name": "진마 '사냥꾼' 청현", "type1": "땅", "type2": "얼음"},
+        ],
     },
     {
-        "name": "꼬부기",   "type1": "물",   "type2": None,
-        "stats": {"hp": 44, "attack": 48, "defense": 65, "sp_atk": 50, "sp_def": 64, "speed": 43},
-        "moves": ["demo_water", "demo_tackle", "demo_pound", "demo_surf"],
-        "team": "red",
+        "key": "trainer_example_2",
+        "party_name": "문서 데모 - 트레이너 예제 2 (썬콜)",
+        "trainer_name": "썬콜",
+        "members": [
+            {"name": "아크메이지(불,독)", "type1": "불꽃", "type2": "독"},
+            {"name": "일리야", "type1": "전기", "type2": "얼음"},
+            {"name": "프랑켄슈타인(fate)", "type1": "전기", "type2": "악"},
+            {"name": "엘퀴네스", "type1": "얼음", "type2": None},
+            {"name": "I:P 마스카레나", "type1": "에스퍼", "type2": "페어리"},
+            {"name": "언다인", "type1": "물", "type2": "격투"},
+            {"name": "나히다", "type1": "풀", "type2": "땅"},
+        ],
     },
     {
-        "name": "이상해씨", "type1": "풀",   "type2": "독",
-        "stats": {"hp": 45, "attack": 49, "defense": 49, "sp_atk": 65, "sp_def": 65, "speed": 45},
-        "moves": ["demo_tackle", "demo_pound", "demo_slash", "demo_quick"],
-        "team": "red",
+        "key": "trainer_sample_2",
+        "party_name": "문서 데모 - 트레이너 샘플 2 (쿠로가네 알토)",
+        "trainer_name": "쿠로가네 알토",
+        "members": [
+            {"name": "섬도희 레이", "type1": "노말", "type2": "비행"},
+            {"name": "콜로서스", "type1": "강철", "type2": None},
+            {"name": "모르포", "type1": "전기", "type2": "페어리"},
+            {"name": "이치히메", "type1": "노말", "type2": None},
+            {"name": "스즈란", "type1": "불꽃", "type2": "독"},
+            {"name": "호세", "type1": "고스트", "type2": "격투"},
+        ],
     },
     {
-        "name": "피카츄",   "type1": "전기", "type2": None,
-        "stats": {"hp": 35, "attack": 55, "defense": 40, "sp_atk": 50, "sp_def": 50, "speed": 90},
-        "moves": ["demo_thunder", "demo_quick", "demo_tackle", "demo_pound"],
-        "team": "red",
-    },
-    {
-        "name": "잠만보",   "type1": "노말", "type2": None,
-        "stats": {"hp": 95, "attack": 80, "defense": 110, "sp_atk": 70, "sp_def": 95, "speed": 30},
-        "moves": ["demo_tackle", "demo_slash", "demo_pound", "demo_surf"],
-        "team": "red",
-    },
-    {
-        "name": "갸라도스",  "type1": "물",  "type2": "비행",
-        "stats": {"hp": 95, "attack": 125, "defense": 79, "sp_atk": 60, "sp_def": 100, "speed": 81},
-        "moves": ["demo_surf", "demo_slash", "demo_tackle", "demo_pound"],
-        "team": "red",
-    },
-    # Blue team
-    {
-        "name": "리자몽",   "type1": "불꽃", "type2": "비행",
-        "stats": {"hp": 78, "attack": 84, "defense": 78, "sp_atk": 109, "sp_def": 85, "speed": 100},
-        "moves": ["demo_ember", "demo_slash", "demo_quick", "demo_tackle"],
-        "team": "blue",
-    },
-    {
-        "name": "거북왕",   "type1": "물",   "type2": None,
-        "stats": {"hp": 79, "attack": 83, "defense": 100, "sp_atk": 85, "sp_def": 105, "speed": 78},
-        "moves": ["demo_surf", "demo_water", "demo_slash", "demo_tackle"],
-        "team": "blue",
-    },
-    {
-        "name": "이상해꽃", "type1": "풀",   "type2": "독",
-        "stats": {"hp": 80, "attack": 82, "defense": 83, "sp_atk": 100, "sp_def": 100, "speed": 80},
-        "moves": ["demo_slash", "demo_tackle", "demo_pound", "demo_quick"],
-        "team": "blue",
-    },
-    {
-        "name": "쥬피썬더", "type1": "전기", "type2": None,
-        "stats": {"hp": 65, "attack": 65, "defense": 60, "sp_atk": 110, "sp_def": 95, "speed": 130},
-        "moves": ["demo_thunder", "demo_quick", "demo_pound", "demo_tackle"],
-        "team": "blue",
-    },
-    {
-        "name": "내루미",   "type1": "노말", "type2": None,
-        "stats": {"hp": 115, "attack": 45, "defense": 20, "sp_atk": 45, "sp_def": 25, "speed": 20},
-        "moves": ["demo_tackle", "demo_slash", "demo_pound", "demo_surf"],
-        "team": "blue",
-    },
-    {
-        "name": "드래곤",   "type1": "드래곤", "type2": None,
-        "stats": {"hp": 91, "attack": 134, "defense": 95, "sp_atk": 100, "sp_def": 100, "speed": 80},
-        "moves": ["demo_slash", "demo_tackle", "demo_quick", "demo_pound"],
-        "team": "blue",
+        "key": "trainer_sample_3",
+        "party_name": "문서 데모 - 트레이너 샘플 3 (쿠레아)",
+        "trainer_name": "쿠레아",
+        "members": [
+            {"name": "키신 사구메", "type1": "얼음", "type2": "에스퍼"},
+            {"name": "엘섀도르 미도라시", "type1": "고스트", "type2": "페어리"},
+            {"name": "코코아", "type1": "풀", "type2": "독"},
+            {"name": "왕 코쵸", "type1": "노말", "type2": "드래곤"},
+            {"name": "스케이스", "type1": "바위", "type2": "에스퍼"},
+            {"name": "훼구왕", "type1": "불꽃", "type2": None},
+        ],
     },
 ]
 
 
-def create_demo_parties() -> tuple[str, str]:
-    """Create (or reuse) two 6-member demo parties.
-
-    Returns ``(red_party_id, blue_party_id)``.  If demo parties already exist
-    (detected by name) they are returned without modification.
-    """
+def create_demo_parties() -> list[str]:
+    """Create (or reuse) 4 doc-based demo parties and return party IDs in order."""
     existing_parties = load_all_parties()
-    red_party: Party | None = None
-    blue_party: Party | None = None
-    for p in existing_parties.values():
-        if p.name == "레드 팀":
-            red_party = p
-        elif p.name == "블루 팀":
-            blue_party = p
-        if red_party and blue_party:
-            break
-    if red_party and blue_party:
-        return red_party.id, blue_party.id
-
-    # Ensure demo moves exist
-    _ensure_demo_moves()
-
-    # Build a name→Pokemon lookup to avoid repeated full-dict scans
+    existing_trainers = load_all_trainers()
     existing_pokemon = load_all_pokemon()
+    party_by_name = {p.name: p for p in existing_parties.values()}
+    trainer_by_name = {t.name: t for t in existing_trainers.values()}
     pokemon_by_name = {p.name: p for p in existing_pokemon.values()}
 
-    red_ids: list[str] = []
-    blue_ids: list[str] = []
+    _ensure_demo_moves()
+    created_party_ids: list[str] = []
 
-    for tmpl in _DEMO_POKEMON_TEMPLATES:
-        tag = f"[데모:{tmpl['team']}] {tmpl['name']}"
-        existing = pokemon_by_name.get(tag)
-        if existing:
-            pid = existing.id
-        else:
+    for spec in _PARTY_SPECS:
+        trainer_name = spec["trainer_name"]
+        trainer = trainer_by_name.get(trainer_name)
+        if trainer is None:
+            trainer = Trainer(id=str(uuid.uuid4()), name=trainer_name)
+            save_trainer(trainer)
+            trainer_by_name[trainer_name] = trainer
+
+        member_ids: list[str] = []
+        for member in spec["members"]:
+            tag = f"[데모:{spec['key']}] {member['name']}"
+            existing = pokemon_by_name.get(tag)
+            if existing is not None:
+                member_ids.append(existing.id)
+                continue
+
             p = Pokemon(
                 id=str(uuid.uuid4()),
                 name=tag,
-                type1=tmpl["type1"],
-                type2=tmpl.get("type2"),
+                type1=member["type1"],
+                type2=member.get("type2"),
                 level=50,
-                base_stats=tmpl["stats"],
+                base_stats=_default_stats_for_types(member["type1"], member.get("type2")),
                 ivs=IVs(hp=15, attack=15, defense=15, sp_atk=15, sp_def=15, speed=15),
-                move_ids=list(tmpl["moves"]),
+                move_ids=_default_moves_for_types(member["type1"], member.get("type2")),
             )
             save_pokemon(p)
-            pid = p.id
+            pokemon_by_name[tag] = p
+            member_ids.append(p.id)
 
-        if tmpl["team"] == "red":
-            red_ids.append(pid)
+        party_name = spec["party_name"]
+        party = party_by_name.get(party_name)
+        if party is None:
+            party = Party(
+                id=str(uuid.uuid4()),
+                name=party_name,
+                trainer_id=trainer.id,
+                pokemon_ids=member_ids,
+                max_size=max(6, len(member_ids)),
+            )
         else:
-            blue_ids.append(pid)
+            party.trainer_id = trainer.id
+            party.pokemon_ids = member_ids
+            party.max_size = max(6, len(member_ids))
+        save_party(party)
+        party_by_name[party_name] = party
+        created_party_ids.append(party.id)
 
-    red = red_party or Party(id=str(uuid.uuid4()), name="레드 팀",
-                             pokemon_ids=red_ids, max_size=6)
-    blue = blue_party or Party(id=str(uuid.uuid4()), name="블루 팀",
-                               pokemon_ids=blue_ids, max_size=6)
-
-    if not red_party:
-        red.pokemon_ids = red_ids
-        save_party(red)
-    if not blue_party:
-        blue.pokemon_ids = blue_ids
-        save_party(blue)
-
-    return red.id, blue.id
+    return created_party_ids
 
 
 def _ensure_demo_moves() -> None:
@@ -199,3 +181,54 @@ def _ensure_demo_moves() -> None:
             changed = True
     if changed:
         save_moves(moves)
+
+
+def _default_moves_for_types(type1: str, type2: str | None) -> list[str]:
+    """Return a 4-move demo set with simple type bias."""
+    moves = ["demo_tackle", "demo_quick", "demo_slash", "demo_pound"]
+    preferred = {
+        "불꽃": "demo_ember",
+        "물": "demo_surf",
+        "전기": "demo_thunder",
+    }
+    for t in (type1, type2):
+        if t in preferred:
+            moves[0] = preferred[t]
+            break
+    return moves
+
+
+def _default_stats_for_types(type1: str, type2: str | None) -> dict[str, int]:
+    """Return deterministic baseline stats for demo members."""
+    hp = 80
+    attack = 85
+    defense = 85
+    sp_atk = 85
+    sp_def = 85
+    speed = 85
+
+    offensive_special = {"전기", "불꽃", "얼음", "에스퍼"}
+    offensive_physical = {"격투", "땅", "강철", "고스트", "드래곤", "악"}
+    defensive = {"바위", "독"}
+
+    types = {type1}
+    if type2:
+        types.add(type2)
+
+    if types & offensive_special:
+        sp_atk += 15
+        speed += 5
+    if types & offensive_physical:
+        attack += 15
+    if types & defensive:
+        defense += 10
+        sp_def += 10
+
+    return {
+        "hp": hp,
+        "attack": attack,
+        "defense": defense,
+        "sp_atk": sp_atk,
+        "sp_def": sp_def,
+        "speed": speed,
+    }

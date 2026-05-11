@@ -122,8 +122,8 @@ class BattleSetupDialog(QDialog):
         layout.addWidget(self._side2_grp["group"])
 
         # Buttons
-        demo_btn = QPushButton("데모 파티 생성 (6v6 즉시 시작)")
-        demo_btn.setToolTip("레드 팀/블루 팀 데모 파티를 자동 생성하여 드롭다운에 추가합니다.")
+        demo_btn = QPushButton("데모 파티 생성 (문서 기반 4파티)")
+        demo_btn.setToolTip("트레이너 예제/샘플2/샘플3 기반 데모 파티 4개를 생성합니다.")
         demo_btn.clicked.connect(self._create_demo_parties)
         layout.addWidget(demo_btn)
 
@@ -155,13 +155,17 @@ class BattleSetupDialog(QDialog):
     def _create_demo_parties(self) -> None:
         """Generate demo parties and refresh the party combo boxes."""
         from tunaed_pokemon.utils.seed_data import create_demo_parties
-        red_id, blue_id = create_demo_parties()
+        demo_party_ids = create_demo_parties()
         # Reload party list and refresh combos
         self._parties = load_all_parties()
+        self._trainers = load_all_trainers()
         self._pokemon = load_all_pokemon()
         self._refresh_party_combos()
-        # Auto-select demo parties in both dropdowns
-        for grp, demo_id in [(self._side1_grp, red_id), (self._side2_grp, blue_id)]:
+        # Auto-select the first 2 created demo parties
+        preferred = list(demo_party_ids[:2])
+        while len(preferred) < 2:
+            preferred.append(None)
+        for grp, demo_id in [(self._side1_grp, preferred[0]), (self._side2_grp, preferred[1])]:
             combo: QComboBox = grp["party"]
             idx = combo.findData(demo_id)
             if idx >= 0:
