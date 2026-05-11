@@ -211,11 +211,18 @@ def _default_moves_for_types(
         return ["demo_tackle"]
     if available_move_ids:
         return [sorted(available_move_ids)[0]]
-    raise RuntimeError("데모 기술 목록이 비어 있어 데모 파티를 생성할 수 없습니다.")
+    raise RuntimeError(
+        "데모 기술 목록이 비어 있어 데모 파티를 생성할 수 없습니다. "
+        "초기화 이후에도 move 데이터베이스가 비어 있습니다. 앱을 재시작하고 데이터 파일을 확인하세요."
+    )
 
 
 def _default_stats_for_types(type1: str, type2: str | None) -> dict[str, int]:
-    """Return deterministic baseline stats for demo members."""
+    """Return deterministic baseline stats for demo members.
+
+    Type category bonuses are cumulative for dual types.
+    Example: "전기/격투" gets both special(+sp_atk/+speed) and physical(+attack) bonuses.
+    """
     hp = 80
     attack = 85
     defense = 85

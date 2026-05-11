@@ -16,11 +16,8 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QGroupBox,
-    QLabel,
     QLineEdit,
     QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
     QWidget,
 )
 
@@ -33,6 +30,7 @@ from tunaed_pokemon.engine.battle_state import (
     BattlePokemonState,
 )
 from tunaed_pokemon.utils.stat_calc import calc_hp, calc_stat
+from tunaed_pokemon.utils.seed_data import create_demo_parties
 
 
 def _build_side_state(party: Party | None, trainers: dict, pokemon: dict,
@@ -93,10 +91,12 @@ class BattleSetupDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("전투 설정")
         self.setMinimumWidth(440)
+        self._demo_party_ids = self._ensure_default_demo_parties()
         self._parties = load_all_parties()
         self._trainers = load_all_trainers()
         self._pokemon = load_all_pokemon()
         self._build_ui()
+        self._auto_select_demo_parties(self._demo_party_ids)
 
     # ── UI ────────────────────────────────────────────────────────────────────
 
@@ -120,12 +120,6 @@ class BattleSetupDialog(QDialog):
         # Side 2
         self._side2_grp = self._make_side_group("플레이어 2 (상대편)")
         layout.addWidget(self._side2_grp["group"])
-
-        # Buttons
-        demo_btn = QPushButton("데모 파티 생성 (문서 기반 4파티)")
-        demo_btn.setToolTip("트레이너 예제/샘플2/샘플3 기반 데모 파티 4개를 생성합니다.")
-        demo_btn.clicked.connect(self._create_demo_parties)
-        layout.addWidget(demo_btn)
 
         # Start / Cancel
         btns = QDialogButtonBox(
@@ -152,16 +146,13 @@ class BattleSetupDialog(QDialog):
 
         return {"group": grp, "name": name_edit, "party": party_combo}
 
-    def _create_demo_parties(self) -> None:
-        """Generate demo parties and refresh the party combo boxes."""
-        from tunaed_pokemon.utils.seed_data import create_demo_parties
-        demo_party_ids = create_demo_parties()
-        # Reload party list and refresh combos
-        self._parties = load_all_parties()
-        self._trainers = load_all_trainers()
-        self._pokemon = load_all_pokemon()
-        self._refresh_party_combos()
-        # Auto-select the first 2 created demo parties
+    def _ensure_default_demo_parties(self) -> list[str]:
+        """Ensure doc-based demo parties are available as default data."""
+        return create_demo_parties()
+
+    def _auto_select_demo_parties(self, demo_party_ids: list[str]) -> None:
+        """Auto-select the first two demo parties in the two side combos."""
+        # Auto-select the first two created demo parties.
         preferred = list(demo_party_ids[:2])
         while len(preferred) < 2:
             preferred.append(None)
