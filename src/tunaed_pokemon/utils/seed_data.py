@@ -110,6 +110,7 @@ def create_demo_parties() -> list[str]:
     pokemon_by_name = {p.name: p for p in existing_pokemon.values()}
 
     _ensure_demo_moves()
+    available_move_ids = set(load_moves().keys())
     created_party_ids: list[str] = []
 
     for spec in _PARTY_SPECS:
@@ -136,7 +137,9 @@ def create_demo_parties() -> list[str]:
                 level=50,
                 base_stats=_default_stats_for_types(member["type1"], member.get("type2")),
                 ivs=IVs(hp=15, attack=15, defense=15, sp_atk=15, sp_def=15, speed=15),
-                move_ids=_default_moves_for_types(member["type1"], member.get("type2")),
+                move_ids=_default_moves_for_types(
+                    member["type1"], member.get("type2"), available_move_ids
+                ),
             )
             save_pokemon(p)
             pokemon_by_name[tag] = p
@@ -183,7 +186,11 @@ def _ensure_demo_moves() -> None:
         save_moves(moves)
 
 
-def _default_moves_for_types(type1: str, type2: str | None) -> list[str]:
+def _default_moves_for_types(
+    type1: str,
+    type2: str | None,
+    available_move_ids: set[str],
+) -> list[str]:
     """Return a 4-move demo set with simple type bias."""
     moves = ["demo_tackle", "demo_quick", "demo_slash", "demo_pound"]
     preferred = {
@@ -195,7 +202,16 @@ def _default_moves_for_types(type1: str, type2: str | None) -> list[str]:
         if t in preferred:
             moves[0] = preferred[t]
             break
-    return moves
+    validated = [m for m in moves if m in available_move_ids]
+    if validated:
+        return validated
+    # Defensive fallback if move DB is unexpectedly missing demo moves
+    # Prefer a guaranteed-safe basic move, otherwise fallback to any available move.
+    if "demo_tackle" in available_move_ids:
+        return ["demo_tackle"]
+    if available_move_ids:
+        return [sorted(available_move_ids)[0]]
+    raise RuntimeError("데모 기술 목록이 비어 있어 데모 파티를 생성할 수 없습니다.")
 
 
 def _default_stats_for_types(type1: str, type2: str | None) -> dict[str, int]:
