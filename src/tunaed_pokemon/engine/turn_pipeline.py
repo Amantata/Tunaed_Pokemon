@@ -46,6 +46,9 @@ class TurnPipeline:
     # - "자신의 기술의 위력을 강화(1.1배)한다."
     # - "기술의 위력을 강화(1.5배)"
     _POWER_BOOST_PATTERN = re.compile(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)")
+    _DOUBLE_DAMAGE_PATTERN = re.compile(r"대미지가\s*2배")
+    _DEFAULT_POTENTIAL_SLOT = "포텐셜"
+    _DEFAULT_POTENTIAL_NAME = "이름 없음"
 
     def __init__(
         self,
@@ -181,7 +184,10 @@ class TurnPipeline:
             field=state.field_state,
         )
         result = self._damage.calculate(ctx)
-        potential_mult = self._potential_power_multiplier(attacker)
+        potential_mult, potential_logs = self._resolve_potential_move_effects(attacker)
+        for line in potential_logs:
+            state.add_log(line)
+            self._bus.emit_message(line)
         if result.final_damage > 0 and potential_mult > 1.0:
             result.final_damage = max(1, int(result.final_damage * potential_mult))
             p_msg = (
@@ -213,21 +219,40 @@ class TurnPipeline:
                 self._record_and_emit(state, faint_event)
                 state.add_log(faint_msg)
 
-    def _potential_power_multiplier(self, attacker: BattlePokemonState) -> float:
-        """Return attacker damage multiplier from simple potential text parsing.
+    def _resolve_potential_move_effects(
+        self,
+        attacker: BattlePokemonState,
+    ) -> tuple[float, list[str]]:
+        """Resolve/announce potential activations for one move action.
 
-        Current scope (test-focused): parse effect text containing
-        "위력을 강화(1.1배)" style expressions from assigned/exclusive potentials.
+        Current scope is intentionally test-focused:
+        - Emit per-potential activation logs for visual verification in battle UI.
+        - Apply damage multiplier only for recognized offensive phrases.
+        - If one effect text contains multiple matching phrases, all matches stack.
         """
         mult = 1.0
-        effects = [p.effect for p in attacker.potentials if p.effect]
-        if attacker.exclusive_potential and attacker.exclusive_potential.effect:
-            effects.append(attacker.exclusive_potential.effect)
+        logs: list[str] = []
+        potentials = list(attacker.potentials)
+        if attacker.exclusive_potential:
+            potentials.append(attacker.exclusive_potential)
 
-        for effect in effects:
+        for p in potentials:
+            if not p.effect:
+                continue
+
+            slot = p.slot or self._DEFAULT_POTENTIAL_SLOT
+            name = p.name or self._DEFAULT_POTENTIAL_NAME
+            logs.append(f"포텐셜 판정! [{slot}] 『{name}』 (검사 완료)")
+
+            effect = p.effect or ""
             for value in self._POWER_BOOST_PATTERN.findall(effect):
-                mult *= float(value)
-        return mult
+                parsed = float(value)
+                mult *= parsed
+                logs.append(f"포텐셜 발동! [{slot}] 『{name}』 - 기술 위력 배율 적용(x{parsed:.2f})")
+            if self._DOUBLE_DAMAGE_PATTERN.search(effect):
+                mult *= 2.0
+                logs.append(f"포텐셜 발동! [{slot}] 『{name}』 - 대미지 2배 적용")
+        return mult, logs
 
     # ── Step 5 — End of turn (field tick) ─────────────────────────────────────
 
