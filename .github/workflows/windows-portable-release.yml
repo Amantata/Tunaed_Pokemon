@@ -1,0 +1,58 @@
+name: Build Windows Portable EXE
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build-windows-portable:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5.1.1
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[build]"
+
+      - name: Build executable with PyInstaller
+        shell: bash
+        run: pyinstaller tunaed_pokemon.spec --noconfirm
+
+      - name: Pack portable zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package -Force | Out-Null
+          Copy-Item dist/TunaedPokemon.exe package/TunaedPokemon.exe
+          @"
+          TunaedPokemon (Windows Portable)
+          --------------------------------
+          1) Extract this zip.
+          2) Run TunaedPokemon.exe.
+          No additional installation is required.
+          "@ | Set-Content -Path package/README.txt -Encoding UTF8
+          Compress-Archive -Path package/* -DestinationPath TunaedPokemon-portable-windows.zip -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: TunaedPokemon-portable-windows
+          path: TunaedPokemon-portable-windows.zip
+          if-no-files-found: error
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2.0.8
+        with:
+          files: TunaedPokemon-portable-windows.zip
