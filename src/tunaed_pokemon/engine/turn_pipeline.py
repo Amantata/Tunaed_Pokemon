@@ -221,7 +221,7 @@ class TurnPipeline:
             effects.append(attacker.exclusive_potential.effect)
 
         for effect in effects:
-            for value in re.findall(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)", effect):
+            for value in self._POWER_BOOST_PATTERN.findall(effect):
                 mult *= float(value)
         return mult
 
@@ -330,3 +330,4 @@ class TurnPipeline:
         state.add_log(msg)
         event = BattleEvent(event_type, message=msg)
         self._record_and_emit(state, event)
+    _POWER_BOOST_PATTERN = re.compile(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)")
