@@ -15,8 +15,10 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
@@ -38,10 +40,7 @@ from tunaed_pokemon.engine.battle_state import (
 from tunaed_pokemon.engine.events import EventBus, BattleEvent, BattleEventType
 from tunaed_pokemon.engine.action_order import ActionEntry
 from tunaed_pokemon.engine.turn_pipeline import TurnPipeline
-from tunaed_pokemon.models.enums import BattleFormat
 from tunaed_pokemon.utils.persistence import (
-    load_battle_state,
-    save_battle_state,
     load_moves,
 )
 from tunaed_pokemon.ui.battle.widgets import (
@@ -51,7 +50,7 @@ from tunaed_pokemon.ui.battle.widgets import (
     PartyOverviewPanel,
     PokemonPanel,
 )
-from tunaed_pokemon.ui.icon_manager import Icons, MEDIUM, SMALL
+from tunaed_pokemon.ui.icon_manager import Icons, MEDIUM
 
 
 class BattleWindow(QMainWindow):
@@ -118,42 +117,25 @@ class BattleWindow(QMainWindow):
         main_lay.setSpacing(6)
         main_lay.setContentsMargins(8, 8, 8, 8)
 
-        # Field state bar (top)
-        self._field_bar = FieldStateBar()
-        main_lay.addWidget(self._field_bar)
+        # Screenshot-based layout: 3 columns × 2 rows
+        row_split = QSplitter(Qt.Orientation.Vertical)
+        main_lay.addWidget(row_split, stretch=1)
 
-        # Battle area (3-column splitter)
-        battle_split = QSplitter(Qt.Orientation.Horizontal)
-        main_lay.addWidget(battle_split, stretch=1)
+        top_split = QSplitter(Qt.Orientation.Horizontal)
+        row_split.addWidget(top_split)
+        top_split.addWidget(self._make_top_side_widget("내 편 (플레이어 1)", 1))
+        top_split.addWidget(self._make_stage_top_widget())
+        top_split.addWidget(self._make_top_side_widget("상대 (플레이어 2)", 2))
 
-        # Left — Side 1
-        side1_widget = self._make_side_widget("내 편 (플레이어 1)", 1)
-        self._side1_panel, self._party1_panel = side1_widget
-        battle_split.addWidget(self._side1_panel)
-
-        # Centre — turn info + VS label
-        centre = self._make_centre_widget()
-        battle_split.addWidget(centre)
-
-        # Right — Side 2
-        side2_widget = self._make_side_widget("상대 (플레이어 2)", 2)
-        self._side2_panel, self._party2_panel = side2_widget
-        battle_split.addWidget(side2_widget[0])
-
-        # Log + command panel (bottom splitter)
         bottom_split = QSplitter(Qt.Orientation.Horizontal)
-        main_lay.addWidget(bottom_split)
+        row_split.addWidget(bottom_split)
+        bottom_split.addWidget(self._make_bottom_side_widget(1))
+        bottom_split.addWidget(self._make_centre_bottom_widget())
+        bottom_split.addWidget(self._make_bottom_side_widget(2))
 
-        self._log_panel = BattleLogPanel()
-        bottom_split.addWidget(self._log_panel)
-
-        self._cmd_panel = CommandPanel()
-        self._cmd_panel.move_selected.connect(self._on_move_selected)
-        self._cmd_panel.switch_requested.connect(self._on_switch_requested)
-        bottom_split.addWidget(self._cmd_panel)
-
-        bottom_split.setSizes([500, 400])
-        battle_split.setSizes([280, 200, 280])
+        row_split.setSizes([240, 420])
+        top_split.setSizes([280, 600, 280])
+        bottom_split.setSizes([280, 600, 280])
 
         # Status bar
         self._status_bar = QStatusBar()
@@ -161,21 +143,34 @@ class BattleWindow(QMainWindow):
         self._turn_lbl = QLabel("턴 0")
         self._status_bar.addPermanentWidget(self._turn_lbl)
 
-    def _make_side_widget(self, title: str, side_num: int) -> tuple[QWidget, PartyOverviewPanel]:
+    def _make_top_side_widget(self, title: str, side_num: int) -> QWidget:
         widget = QWidget()
         lay = QVBoxLayout(widget)
-        lay.setContentsMargins(4, 4, 4, 4)
+        lay.setContentsMargins(6, 6, 6, 6)
         lay.setSpacing(6)
 
         hdr = QLabel(title)
         hdr.setObjectName("section_title")
         lay.addWidget(hdr)
 
-        panel = PokemonPanel("활성 포켓몬")
-        lay.addWidget(panel)
+        info_row = QHBoxLayout()
+        image = QFrame()
+        image.setObjectName("panel")
+        image.setFixedSize(110, 110)
+        image_lbl = QLabel("이미지", image)
+        image_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        image_lbl.setGeometry(0, 0, 110, 110)
+        info_row.addWidget(image)
 
-        party = PartyOverviewPanel()
-        lay.addWidget(party)
+        panel = PokemonPanel("포켓몬 데이터")
+        info_row.addWidget(panel, stretch=1)
+        lay.addLayout(info_row)
+
+        for colour in ("#8b0016", "#8b0016", "#FFE66D"):
+            line = QFrame()
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setStyleSheet(f"border: 2px solid {colour};")
+            lay.addWidget(line)
         lay.addStretch()
 
         if side_num == 1:
@@ -183,23 +178,30 @@ class BattleWindow(QMainWindow):
         else:
             self._active2_panel = panel
 
-        return widget, party
+        return widget
 
-    def _make_centre_widget(self) -> QWidget:
+    def _make_stage_top_widget(self) -> QWidget:
         w = QWidget()
         lay = QVBoxLayout(w)
-        lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lay.setSpacing(8)
+        lay.setContentsMargins(8, 8, 8, 8)
+        lay.setSpacing(10)
 
-        vs_lbl = QLabel("VS")
-        vs_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        vs_lbl.setStyleSheet("font-size: 32px; font-weight: bold; color: #34E5FF;")
-        lay.addWidget(vs_lbl)
+        self._field_bar = FieldStateBar()
+        lay.addWidget(self._field_bar)
+
+        bg_lbl = QLabel("배경 이미지 (날씨, 필드 등)")
+        bg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bg_lbl.setStyleSheet("font-size: 16px; color: #A0A0B0;")
+        lay.addWidget(bg_lbl)
+
+        battle_data_lbl = QLabel("배틀 데이터")
+        battle_data_lbl.setStyleSheet("font-size: 18px; color: #E0E0E0;")
+        lay.addWidget(battle_data_lbl)
+        lay.addStretch()
 
         self._fmt_lbl = QLabel("")
-        self._fmt_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._fmt_lbl.setStyleSheet("color: #A0A0B0; font-size: 12px;")
-        lay.addWidget(self._fmt_lbl)
+        lay.addWidget(self._fmt_lbl, alignment=Qt.AlignmentFlag.AlignLeft)
 
         self._next_turn_btn = QPushButton("다음 턴")
         self._next_turn_btn.setObjectName("primary")
@@ -209,7 +211,57 @@ class BattleWindow(QMainWindow):
             "font-size: 14px; padding: 10px 20px; min-width: 120px;"
         )
         self._next_turn_btn.clicked.connect(self._advance_turn)
-        lay.addWidget(self._next_turn_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        lay.addWidget(self._next_turn_btn, alignment=Qt.AlignmentFlag.AlignRight)
+
+        return w
+
+    def _make_bottom_side_widget(self, side_num: int) -> QWidget:
+        widget = QWidget()
+        lay = QVBoxLayout(widget)
+        lay.setContentsMargins(6, 6, 6, 6)
+        lay.setSpacing(8)
+
+        party = PartyOverviewPanel()
+        lay.addWidget(party)
+        if side_num == 1:
+            self._party1_panel = party
+        else:
+            self._party2_panel = party
+
+        cmd = CommandPanel()
+        lay.addWidget(cmd)
+        if side_num == 1:
+            self._cmd_panel = cmd
+            self._cmd_panel.move_selected.connect(self._on_move_selected)
+            self._cmd_panel.switch_requested.connect(self._on_switch_requested)
+        else:
+            self._opponent_cmd_panel = cmd
+            cmd.set_enabled(False)
+
+        extra = QLineEdit()
+        extra.setPlaceholderText("추가입력장")
+        extra.setReadOnly(side_num == 2)
+        lay.addWidget(extra)
+        lay.addStretch()
+
+        return widget
+
+    def _make_centre_bottom_widget(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(6, 6, 6, 6)
+        lay.setSpacing(6)
+
+        fx_lbl = QLabel("연출 등")
+        fx_lbl.setObjectName("section_title")
+        lay.addWidget(fx_lbl)
+
+        self._log_panel = BattleLogPanel()
+        lay.addWidget(self._log_panel, stretch=1)
+
+        log_lbl = QLabel("로그")
+        log_lbl.setStyleSheet("color: #A0A0B0;")
+        lay.addWidget(log_lbl, alignment=Qt.AlignmentFlag.AlignLeft)
 
         return w
 
@@ -238,6 +290,11 @@ class BattleWindow(QMainWindow):
         else:
             self._cmd_panel.refresh([], self._moves)
             self._cmd_panel.set_enabled(False)
+        if active2:
+            self._opponent_cmd_panel.refresh(active2[0].move_ids, self._moves)
+        else:
+            self._opponent_cmd_panel.refresh([], self._moves)
+        self._opponent_cmd_panel.set_enabled(False)
 
         # Format label
         self._fmt_lbl.setText(f"[{s.battle_format}]")
