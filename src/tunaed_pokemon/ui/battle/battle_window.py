@@ -274,10 +274,10 @@ class BattleWindow(QMainWindow):
 
         # If fainted, perform an auto-switch to the first available Pokémon
         if active.is_fainted:
-            for i, ps in enumerate(side_state.pokemon_states):
-                if not ps.is_fainted and i not in side_state.active_indices:
-                    return [ActionEntry(side=side, pokemon=active,
-                                        action_type="switch", switch_target=i)]
+            next_idx = self._find_next_available(side_state)
+            if next_idx is not None:
+                return [ActionEntry(side=side, pokemon=active,
+                                    action_type="switch", switch_target=next_idx)]
             return []
 
         # Use first available move
@@ -404,10 +404,9 @@ class BattleWindow(QMainWindow):
         side2 = self._state.side2
         actives2 = side2.active_pokemon
         if actives2 and actives2[0].is_fainted:
-            for i, ps in enumerate(side2.pokemon_states):
-                if not ps.is_fainted and i not in side2.active_indices:
-                    self._do_switch_in(side2, i)
-                    break
+            next_idx = self._find_next_available(side2)
+            if next_idx is not None:
+                self._do_switch_in(side2, next_idx)
 
         # Player side: prompt for switch
         side1 = self._state.side1
@@ -416,6 +415,14 @@ class BattleWindow(QMainWindow):
             idx = self._pick_switch_target(side1, forced=True)
             if idx is not None:
                 self._do_switch_in(side1, idx)
+
+    @staticmethod
+    def _find_next_available(side_state: BattleSideState) -> int | None:
+        """Return the index of the first non-fainted, non-active Pokémon, or None."""
+        for i, ps in enumerate(side_state.pokemon_states):
+            if not ps.is_fainted and i not in side_state.active_indices:
+                return i
+        return None
 
 
     # ── Save / Load (B-01) ────────────────────────────────────────────────────
