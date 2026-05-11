@@ -416,3 +416,122 @@ class TestTurnPipeline:
         assert new.turn_number == state.turn_number
         assert new.battle_over is True
         assert new.winner_side == 1
+
+
+# ── 6v6 Full Battle End ───────────────────────────────────────────────────────
+
+def _make_6v6_state(
+    side1_hp: int = 10,
+    side2_hp: int = 10,
+) -> BattleStateSnapshot:
+    """Build a 6v6 BattleStateSnapshot with all Pokémon at given HP.
+
+    Both sides have 6 Pokémon; active index is [0] for each side.
+    Stats are set so that a single 80-power physical move OHKOs the defender.
+    """
+    def _party(prefix: str, hp: int) -> list[BattlePokemonState]:
+        return [
+            _make_pokemon(f"{prefix}{i+1}", attack=300, defense=10, hp=hp)
+            for i in range(6)
+        ]
+
+    side1 = BattleSideState(
+        trainer_id=None, trainer_name="트레이너A", party_id=None,
+        pokemon_states=_party("A", side1_hp), active_indices=[0],
+    )
+    side2 = BattleSideState(
+        trainer_id=None, trainer_name="트레이너B", party_id=None,
+        pokemon_states=_party("B", side2_hp), active_indices=[0],
+    )
+    return BattleStateSnapshot(side1=side1, side2=side2)
+
+
+class TestSixVSixBattleEnd:
+    """Criterion 3: when all 6 Pokémon on one side faint, battle_over is set
+    and winner_side is stored in the snapshot."""
+
+    def _ohko_move(self) -> MoveData:
+        return _make_move(type_="노말", category="물리", power=200)
+
+    def test_one_faint_does_not_end_battle(self):
+        """Fainting the active Pokémon on side 2 alone should NOT end the battle
+        when side 2 still has 5 non-fainted Pokémon."""
+        state = _make_6v6_state(side1_hp=500, side2_hp=10)
+        p1 = state.side1.pokemon_states[0]
+        move = self._ohko_move()
+        action = ActionEntry(side=1, pokemon=p1, action_type="move", move=move)
+        pipe = TurnPipeline()
+        new = pipe.process_turn(state, [action], {"m1": move})
+        # Active on side 2 is fainted, but side 2 still has 5 others
+        assert new.side2.pokemon_states[0].is_fainted
+        assert not new.battle_over
+
+    def test_all_six_fainted_side2_ends_battle(self):
+        """When all 6 Pokémon on side 2 are pre-fainted except the active one,
+        fainting the last one should set battle_over and winner_side=1."""
+        state = _make_6v6_state(side1_hp=500, side2_hp=10)
+        # Pre-faint Pokémon 1-5 on side 2
+        for i in range(1, 6):
+            state.side2.pokemon_states[i].is_fainted = True
+
+        p1 = state.side1.pokemon_states[0]
+        move = self._ohko_move()
+        action = ActionEntry(side=1, pokemon=p1, action_type="move", move=move)
+        pipe = TurnPipeline()
+        new = pipe.process_turn(state, [action], {"m1": move})
+
+        assert new.battle_over is True
+        assert new.winner_side == 1
+        assert any("배틀 종료" in msg for msg in new.log)
+
+    def test_all_six_fainted_side1_ends_battle(self):
+        """Symmetric test: all 6 of side 1 faint → winner_side=2."""
+        state = _make_6v6_state(side1_hp=10, side2_hp=500)
+        for i in range(1, 6):
+            state.side1.pokemon_states[i].is_fainted = True
+
+        p2 = state.side2.pokemon_states[0]
+        move = self._ohko_move()
+        action = ActionEntry(side=2, pokemon=p2, action_type="move", move=move)
+        pipe = TurnPipeline()
+        new = pipe.process_turn(state, [action], {"m1": move})
+
+        assert new.battle_over is True
+        assert new.winner_side == 2
+
+    def test_battle_over_state_is_serializable(self):
+        """Criterion 3+4: terminal state must round-trip through to_dict/from_dict."""
+        state = _make_6v6_state(side1_hp=500, side2_hp=10)
+        for i in range(1, 6):
+            state.side2.pokemon_states[i].is_fainted = True
+        p1 = state.side1.pokemon_states[0]
+        move = self._ohko_move()
+        action = ActionEntry(side=1, pokemon=p1, action_type="move", move=move)
+        pipe = TurnPipeline()
+        final = pipe.process_turn(state, [action], {"m1": move})
+
+        d = final.to_dict()
+        restored = BattleStateSnapshot.from_dict(d)
+        assert restored.battle_over is True
+        assert restored.winner_side == final.winner_side
+
+    def test_draw_when_both_sides_faint(self):
+        """If both active Pokémon faint from end-of-turn weather damage in the same
+        turn, and all others are pre-fainted → draw (winner_side=None)."""
+        # Each active Pokémon has exactly 1 HP; sandstorm deals max(1, hp//16)=1 damage
+        state = _make_6v6_state(side1_hp=1, side2_hp=1)
+        # Pre-faint Pokémon 1-5 on both sides
+        for i in range(1, 6):
+            state.side1.pokemon_states[i].is_fainted = True
+            state.side2.pokemon_states[i].is_fainted = True
+
+        # Set sandstorm so both active Pokémon take 1 damage at end of turn
+        state.field_state.set_weather(Weather.SANDSTORM, turns=3)
+
+        # No move actions — both take weather damage only
+        pipe = TurnPipeline()
+        new = pipe.process_turn(state, [], {"m1": _make_move()})
+
+        assert new.battle_over is True
+        assert new.winner_side is None
+        assert any("무승부" in msg for msg in new.log)

@@ -12,9 +12,13 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -27,6 +31,7 @@ from PySide6.QtWidgets import (
 
 from tunaed_pokemon.engine.battle_state import (
     BattleEventHistory,
+    BattleSideState,
     BattleStateSnapshot,
     TurnHistory,
 )
@@ -258,6 +263,31 @@ class BattleWindow(QMainWindow):
         # Messages are already added to s.log by TurnPipeline; just refresh panel
         self._log_panel.append(event.message)
 
+    def _build_ai_action(self, side: int) -> list[ActionEntry]:
+        """Build a simple AI action for the given side (uses first available move,
+        or switches to the next non-fainted Pokémon if active is fainted)."""
+        side_state = self._state.side1 if side == 1 else self._state.side2
+        actives = side_state.active_pokemon
+        if not actives:
+            return []
+        active = actives[0]
+
+        # If fainted, perform an auto-switch to the first available Pokémon
+        if active.is_fainted:
+            for i, ps in enumerate(side_state.pokemon_states):
+                if not ps.is_fainted and i not in side_state.active_indices:
+                    return [ActionEntry(side=side, pokemon=active,
+                                        action_type="switch", switch_target=i)]
+            return []
+
+        # Use first available move
+        for mid in active.move_ids:
+            mv = self._moves.get(mid)
+            if mv:
+                return [ActionEntry(side=side, pokemon=active,
+                                    action_type="move", move=mv)]
+        return []
+
     def _on_move_selected(self, move_id: str) -> None:
         if self._state.battle_over:
             return
@@ -276,31 +306,44 @@ class BattleWindow(QMainWindow):
         # B-01: snapshot at turn START (before processing)
         self._turn_history.push(self._state)
 
-        # Build action for side 1 using the selected move
         action = ActionEntry(side=1, pokemon=attacker, action_type="move", move=mv)
-
-        # Build a simple AI action for side 2 (first available move)
-        actives2 = self._state.side2.active_pokemon
-        opponent_actions: list[ActionEntry] = []
-        if actives2:
-            opp = actives2[0]
-            if not opp.is_fainted and opp.move_ids:
-                opp_mv = self._moves.get(opp.move_ids[0])
-                if opp_mv:
-                    opponent_actions.append(
-                        ActionEntry(side=2, pokemon=opp, action_type="move", move=opp_mv)
-                    )
-
         new_state = self._pipeline.process_turn(
-            self._state, [action] + opponent_actions, self._moves
+            self._state, [action] + self._build_ai_action(2), self._moves
         )
         self._state = new_state
+        self._handle_post_faint_switch()
         self._refresh_all()
 
     def _on_switch_requested(self) -> None:
+        """Handle voluntary switch: player chooses a party member to send out."""
         if self._state.battle_over:
             return
-        self._bus.emit_message("포켓몬 교대 요청 (구현 예정)")
+        idx = self._pick_switch_target(self._state.side1, forced=False)
+        if idx is None:
+            return
+
+        # B-01: snapshot at turn START
+        self._turn_history.push(self._state)
+
+        active1 = self._state.side1.active_pokemon
+        attacker = active1[0] if active1 else None
+
+        actions: list[ActionEntry] = []
+        if attacker:
+            switch_action = ActionEntry(
+                side=1,
+                pokemon=attacker,
+                action_type="switch",
+                switch_target=idx,
+            )
+            actions.append(switch_action)
+
+        # AI also acts this turn
+        actions += self._build_ai_action(2)
+
+        new_state = self._pipeline.process_turn(self._state, actions, self._moves)
+        self._state = new_state
+        self._handle_post_faint_switch()
         self._refresh_all()
 
     # ── Turn processing ───────────────────────────────────────────────────────
@@ -313,7 +356,67 @@ class BattleWindow(QMainWindow):
         self._turn_history.push(self._state)
         new_state = self._pipeline.process_turn(self._state, [], self._moves)
         self._state = new_state
+        self._handle_post_faint_switch()
         self._refresh_all()
+
+    # ── Switch helpers ────────────────────────────────────────────────────────
+
+    def _pick_switch_target(
+        self, side_state: BattleSideState, *, forced: bool
+    ) -> int | None:
+        """Show a dialog for the player to choose a Pokémon to switch to.
+
+        Returns the index into side_state.pokemon_states, or None if cancelled.
+        ``forced=True`` means the dialog cannot be dismissed without selecting.
+        """
+        candidates: list[tuple[int, str]] = []
+        for i, ps in enumerate(side_state.pokemon_states):
+            if not ps.is_fainted and i not in side_state.active_indices:
+                candidates.append((i, f"{ps.name}  HP {ps.current_hp}/{ps.max_hp}"))
+        if not candidates:
+            return None
+
+        dlg = _SwitchSelectDialog(candidates, forced=forced, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            return dlg.selected_index()
+        return None
+
+    def _do_switch_in(
+        self, side_state: BattleSideState, idx: int
+    ) -> None:
+        """Apply a post-faint switch-in: update active index and log the entry."""
+        side_state.active_indices = [idx]
+        name = side_state.pokemon_states[idx].name
+        msg = f"{name}(이)가 출전!"
+        self._state.add_log(msg)
+        self._bus.emit_message(msg)
+
+    def _handle_post_faint_switch(self) -> None:
+        """After a turn, handle forced switches for fainted active Pokémon.
+
+        - Player side (1): show switch dialog (forced — cannot skip).
+        - AI side (2):     auto-switch to the first available Pokémon.
+        """
+        if self._state.battle_over:
+            return
+
+        # AI side: auto-switch fainted active Pokémon
+        side2 = self._state.side2
+        actives2 = side2.active_pokemon
+        if actives2 and actives2[0].is_fainted:
+            for i, ps in enumerate(side2.pokemon_states):
+                if not ps.is_fainted and i not in side2.active_indices:
+                    self._do_switch_in(side2, i)
+                    break
+
+        # Player side: prompt for switch
+        side1 = self._state.side1
+        actives1 = side1.active_pokemon
+        if actives1 and actives1[0].is_fainted and not self._state.battle_over:
+            idx = self._pick_switch_target(side1, forced=True)
+            if idx is not None:
+                self._do_switch_in(side1, idx)
+
 
     # ── Save / Load (B-01) ────────────────────────────────────────────────────
 
@@ -388,3 +491,55 @@ class BattleWindow(QMainWindow):
         self._result_announced = True
         message = self._battle_result_message(self._state)
         self._status_bar.showMessage(message, 5000)
+
+
+# ── Switch selection dialog ───────────────────────────────────────────────────
+
+class _SwitchSelectDialog(QDialog):
+    """Modal dialog for selecting a Pokémon to switch in.
+
+    Parameters
+    ----------
+    candidates:
+        List of (party_index, display_text) tuples for switchable Pokémon.
+    forced:
+        If True the Cancel button is hidden (post-faint forced switch).
+    """
+
+    def __init__(
+        self,
+        candidates: list[tuple[int, str]],
+        *,
+        forced: bool = False,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._candidates = candidates
+        self.setWindowTitle("포켓몬 선택")
+        self.setMinimumWidth(300)
+
+        lay = QVBoxLayout(self)
+        hint = "교대할 포켓몬을 선택하세요." if not forced else "다음 포켓몬을 선택하세요. (필수)"
+        lay.addWidget(QLabel(hint))
+
+        self._list = QListWidget()
+        for _, text in candidates:
+            self._list.addItem(QListWidgetItem(text))
+        if candidates:
+            self._list.setCurrentRow(0)
+        self._list.itemDoubleClicked.connect(self.accept)
+        lay.addWidget(self._list)
+
+        btn_flags = QDialogButtonBox.StandardButton.Ok
+        if not forced:
+            btn_flags |= QDialogButtonBox.StandardButton.Cancel
+        btns = QDialogButtonBox(btn_flags)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        lay.addWidget(btns)
+
+    def selected_index(self) -> int | None:
+        row = self._list.currentRow()
+        if 0 <= row < len(self._candidates):
+            return self._candidates[row][0]
+        return None
