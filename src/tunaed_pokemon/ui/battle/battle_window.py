@@ -52,6 +52,9 @@ from tunaed_pokemon.ui.battle.widgets import (
 )
 from tunaed_pokemon.ui.icon_manager import Icons, MEDIUM
 
+IMAGE_PLACEHOLDER_SIZE = 110
+SEPARATOR_COLORS = ("#8b0016", "#8b0016", "#FFE66D")
+
 
 class BattleWindow(QMainWindow):
     """Main battle screen.
@@ -75,6 +78,7 @@ class BattleWindow(QMainWindow):
         self._pipeline = TurnPipeline(self._bus, self._event_history)
         self._moves = load_moves()
         self._result_announced = False
+        self._opponent_cmd_panel: CommandPanel | None = None
 
         self._build_ui()
         self._refresh_all()
@@ -156,17 +160,18 @@ class BattleWindow(QMainWindow):
         info_row = QHBoxLayout()
         image = QFrame()
         image.setObjectName("panel")
-        image.setFixedSize(110, 110)
+        image.setFixedSize(IMAGE_PLACEHOLDER_SIZE, IMAGE_PLACEHOLDER_SIZE)
         image_lbl = QLabel("이미지", image)
         image_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        image_lbl.setGeometry(0, 0, 110, 110)
+        image_lbl.setGeometry(0, 0, IMAGE_PLACEHOLDER_SIZE, IMAGE_PLACEHOLDER_SIZE)
         info_row.addWidget(image)
 
         panel = PokemonPanel("포켓몬 데이터")
         info_row.addWidget(panel, stretch=1)
         lay.addLayout(info_row)
 
-        for colour in ("#8b0016", "#8b0016", "#FFE66D"):
+        # Screenshot guide uses two red separators and one yellow separator.
+        for colour in SEPARATOR_COLORS:
             line = QFrame()
             line.setFrameShape(QFrame.Shape.HLine)
             line.setStyleSheet(f"border: 2px solid {colour};")
@@ -290,11 +295,12 @@ class BattleWindow(QMainWindow):
         else:
             self._cmd_panel.refresh([], self._moves)
             self._cmd_panel.set_enabled(False)
-        if active2:
-            self._opponent_cmd_panel.refresh(active2[0].move_ids, self._moves)
-        else:
-            self._opponent_cmd_panel.refresh([], self._moves)
-        self._opponent_cmd_panel.set_enabled(False)
+        if self._opponent_cmd_panel is not None:
+            if active2:
+                self._opponent_cmd_panel.refresh(active2[0].move_ids, self._moves)
+            else:
+                self._opponent_cmd_panel.refresh([], self._moves)
+            self._opponent_cmd_panel.set_enabled(False)
 
         # Format label
         self._fmt_lbl.setText(f"[{s.battle_format}]")
