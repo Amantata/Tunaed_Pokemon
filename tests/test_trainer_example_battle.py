@@ -52,12 +52,30 @@ def _make_ray() -> BattlePokemonState:
         ability_name="오기",
         move_ids=moves,
         potentials=[
+            AssignedPotential(slot="역할", name="부동의 에이스", effect="「이 때다!」일 때 모든 능력이 상승하고 「C」가 상승한다."),
+            AssignedPotential(slot="분류", name="금관 사이즈", effect="「섬도희」종의 최대 사이즈인 『고유종』."),
+            AssignedPotential(slot="계제①", name="섬도기의 연격", effect="「이 때다!」일 때 저확률로 추가 공격을 행한다."),
+            AssignedPotential(slot="계제②", name="섬도기의 요격", effect="「이 때다!」일 때 저확률로 상대의 기술의 위력을 반감한다."),
+            AssignedPotential(slot="계제③", name="섬도기의 개가", effect="상대를 쓰러트렸을때, 자신의 체력을 1/4 회복한다."),
+            AssignedPotential(slot="속별", name="검의 소녀", effect="자신의 「칼/검」기술에 추가 효과로써 「2할 : 동면/화상/마비」를 부여한다."),
+            AssignedPotential(slot="유대", name="영혼의 유대", effect="필드에 있는 한 트레이너의 지시를 「1」랭크 상승시킨다."),
+            AssignedPotential(slot="선제", name="후의 선", effect="상대가 자신보다 먼저 행동했을 때 드물게 상대보다 먼저 행동한다."),
+            AssignedPotential(slot="회피", name="대전회피", effect="적진에 「전기」 포켓몬이 있을 때, 상대의 「전기」 기술의 명중률을 감소(0.85배)시킨다."),
+            AssignedPotential(slot="내성", name="대전내성", effect="적진에 「전기」 포켓몬이 있을 때, 상대의 「전기」 기술의 대미지를 완화(0.67배)한다."),
+            AssignedPotential(slot="격", name="대전박격", effect="적진에 「전기」 포켓몬이 있을 때, 저확률로 자신의 기술의 대미지가 2배가 된다."),
+            AssignedPotential(slot="범용", name="기합", effect="드물게 기합으로 상대의 공격을 버틴다."),
+            AssignedPotential(slot="부수", name="슬러그 아츠", effect="「이 때다!」일 때 자신의 「명중」을 강화(1.33배)한다."),
             AssignedPotential(
                 slot="PT①",
                 name="안경과 머리띠",
                 effect="자신의 기술의 위력을 강화(1.1배)한다.",
-            )
+            ),
         ],
+        exclusive_potential=AssignedPotential(
+            slot="전용포텐셜",
+            name="섬도기동-인게이지",
+            effect="턴 종료 시까지 자신의 모든 능력치를 강화(1.5배)한다.",
+        ),
         pp_remaining=pp_list,
         battle_stats={
             "hp": 270, "attack": 135, "defense": 90,
@@ -171,6 +189,17 @@ class TestExamplePartySetup:
     def test_ray_has_example_pt_potential(self):
         ray = _make_ray()
         assert any("위력을 강화(1.1배)" in p.effect for p in ray.potentials)
+
+    def test_ray_registers_all_example_potential_kinds(self):
+        ray = _make_ray()
+        slots = {p.slot for p in ray.potentials}
+        expected_slots = {
+            "역할", "분류", "계제①", "계제②", "계제③",
+            "속별", "유대", "선제", "회피", "내성", "격", "범용", "부수", "PT①",
+        }
+        assert slots == expected_slots
+        assert ray.exclusive_potential is not None
+        assert ray.exclusive_potential.slot == "전용포텐셜"
 
 
 # ── B-02: BattleEventHistory 이벤트 기록 테스트 ──────────────────────────────
@@ -413,6 +442,29 @@ class TestExamplePotentialActivation:
         hp_without = without_result.side2.pokemon_states[0].current_hp
         assert hp_with < hp_without
         assert any("포텐셜 발동!" in line for line in with_result.log)
+
+    def test_all_registered_ray_potentials_are_visible_in_activation_log(self):
+        state_with, moves = _make_battle()
+        pipe = TurnPipeline()
+        move = moves["hitblade"]
+
+        result = pipe.process_turn(
+            state_with,
+            [ActionEntry(side=1, pokemon=state_with.side1.pokemon_states[0], action_type="move", move=move)],
+            moves,
+        )
+
+        activation_lines = [line for line in result.log if line.startswith("포텐셜 판정! [")]
+        ray = state_with.side1.pokemon_states[0]
+        expected_names = [p.name for p in ray.potentials]
+        if ray.exclusive_potential:
+            expected_names.append(ray.exclusive_potential.name)
+        for name in expected_names:
+            assert any(f"『{name}』" in line for line in activation_lines)
+        assert any(
+            "포텐셜 발동! [PT①] 『안경과 머리띠』 - 기술 위력 배율 적용" in line
+            for line in result.log
+        )
 
 
 # ── 다턴 배틀 로그 재생 테스트 ───────────────────────────────────────────────
