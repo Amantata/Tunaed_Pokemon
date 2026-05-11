@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -375,7 +376,11 @@ class CommandPanel(QWidget):
 # ── BattleLogPanel ────────────────────────────────────────────────────────────
 
 class BattleLogPanel(QWidget):
-    """Scrolling text log of battle events."""
+    """Dual-tab battle log panel (Q5).
+
+    Tab 0 — 텍스트 로그 (기본): Chat-style scrolling text log.
+    Tab 1 — 이벤트 타임라인: Card-style event list from BattleEventHistory.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -384,22 +389,45 @@ class BattleLogPanel(QWidget):
     def _build_ui(self) -> None:
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(4)
+        lay.setSpacing(0)
 
-        hdr = QLabel("배틀 로그")
-        hdr.setObjectName("section_title")
-        lay.addWidget(hdr)
+        self._tabs = QTabWidget()
+        lay.addWidget(self._tabs)
 
+        # ── Tab 0: 텍스트 로그 (primary) ────────────────────────────────────
+        log_widget = QWidget()
+        log_lay = QVBoxLayout(log_widget)
+        log_lay.setContentsMargins(4, 4, 4, 4)
+        log_lay.setSpacing(4)
         self._log = QTextEdit()
         self._log.setObjectName("battle_log")
         self._log.setReadOnly(True)
-        lay.addWidget(self._log)
+        log_lay.addWidget(self._log)
+        self._tabs.addTab(log_widget, "텍스트 로그")
+
+        # ── Tab 1: 이벤트 타임라인 (secondary) ──────────────────────────────
+        timeline_widget = QWidget()
+        timeline_lay = QVBoxLayout(timeline_widget)
+        timeline_lay.setContentsMargins(4, 4, 4, 4)
+        timeline_lay.setSpacing(4)
+        self._timeline = QTextEdit()
+        self._timeline.setObjectName("battle_log")
+        self._timeline.setReadOnly(True)
+        timeline_lay.addWidget(self._timeline)
+        self._tabs.addTab(timeline_widget, "이벤트 타임라인")
+
+        # Always open on the text log tab
+        self._tabs.setCurrentIndex(0)
+
+    # ── Public API ────────────────────────────────────────────────────────────
 
     def append(self, text: str) -> None:
+        """Append a text line to the text log tab."""
         self._log.append(text)
         self._log.ensureCursorVisible()
 
     def set_log(self, entries: list[str]) -> None:
+        """Replace the entire text log."""
         self._log.clear()
         for entry in entries:
             self._log.append(entry)
@@ -407,3 +435,32 @@ class BattleLogPanel(QWidget):
 
     def clear(self) -> None:
         self._log.clear()
+        self._timeline.clear()
+
+    def set_event_log(self, events: list) -> None:
+        """Populate the event timeline tab from a list of BattleEvent objects."""
+        from tunaed_pokemon.engine.events import BattleEventType
+        self._timeline.clear()
+        for i, evt in enumerate(events):
+            icon_map = {
+                BattleEventType.MOVE_USED:      "[기술]",
+                BattleEventType.DAMAGE_DEALT:   "[데미지]",
+                BattleEventType.STATUS_APPLIED: "[상태이상]",
+                BattleEventType.STATUS_REMOVED: "[상태회복]",
+                BattleEventType.POKEMON_FAINTED:"[쓰러짐]",
+                BattleEventType.POKEMON_SWITCHED:"[교대]",
+                BattleEventType.TURN_START:     "[턴 시작]",
+                BattleEventType.TURN_END:       "[턴 종료]",
+                BattleEventType.FIELD_CHANGED:  "[필드 변화]",
+                BattleEventType.RANK_CHANGED:   "[랭크 변화]",
+                BattleEventType.HP_CHANGED:     "[HP 변화]",
+                BattleEventType.BATTLE_END:     "[배틀 종료]",
+                BattleEventType.MESSAGE:        "[메시지]",
+            }
+            tag = icon_map.get(evt.event_type, "[?]")
+            side_str = f" [P{evt.side}]" if evt.side else ""
+            line = f"#{i+1:03d} {tag}{side_str} {evt.message}"
+            self._timeline.append(line)
+        self._timeline.ensureCursorVisible()
+
+

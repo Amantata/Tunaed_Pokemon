@@ -42,10 +42,10 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| B-01 | Save / load in-progress battle state | Not started |
-| B-02 | Store turn history for Undo / Redo navigation | Not started |
+| B-01 | Save / load in-progress battle state — **snapshot taken at the start of each turn only** | Not started |
+| B-02 | Store turn history for Undo / Redo navigation — **Undo/Redo granularity is per-event (one action at a time), not per-turn** | Not started |
 | B-03 | Battle must include presentation effects (animations / event visuals) | Not started |
-| B-04 | Battle state must be directly editable during play to handle errors or execution mistakes | Not started |
+| B-04 | Battle state must be directly editable during play via a **separate "Battle Edit Mode" screen** (not an overlay); editable fields: HP, status conditions, rank stages / reinforcement multipliers, weather/terrain/field, potential trigger states, active Pokémon (on-field) — additional fields may be added during testing | Not started |
 | AX-07 | Battle settings must support 4 modes for `명중체감치 정상화` (off / identical situation only / same accuracy only / all sequentially) | Not started |
 | AX-09 | Support both critical correction methods: command-rank gap based and absolute-value based (`A` gives `C+1`) | Not started |
 
@@ -65,10 +65,10 @@
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| PT-01 | New potentials can be written as scripts within the program | Not started |
+| PT-01 | New potentials can be written as scripts within the program — **UI form (dropdown conditions/effects) is primary; advanced script editing is available as supplement (hybrid approach)** | Not started |
 | PT-02 | Existing potentials can be selected from a list | Not started |
 | PT-03 | Potentials trigger automatically during the battle processing step when conditions are met | Not started |
-| PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity via script writing or an in-app editor | Not started |
+| PT-04 | Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) must be customizable per entity — **via UI form (primary) with optional advanced script editor; test using trainer/party samples from `docs/트레이너 예제.md`** | Not started |
 | PT-05 | Potential naming is strict — see note below | Not started |
 | PT-06 | Abilities (특성) and potentials are independent: effects that alter abilities do NOT affect potentials, and vice versa | Not started |
 | AX-04 | Battle settings must allow selecting which defense-potential categories are used | Not started |
@@ -132,8 +132,6 @@
 | UI-01 | GUI-based interface | Not started |
 | UI-02 | Primary color `#34E5FF`, secondary color `#FFE66D` | Not started |
 | UI-03 | Refer to provided screenshots (to be supplied) | Not started |
-| UI-04 | Battle screen and party/encyclopedia editor are **completely separate application paths** from the launcher. No cross-navigation during battle. | Done |
-| UI-05 | All UI icons and decorative indicators must use **custom-designed image files** (SVG). Emoji / Unicode emoticons are prohibited. | Done |
 
 ### 2.10 Image System
 
@@ -151,6 +149,10 @@
 | EX-02 | Move list, ability list, and potential list must each support import/export as external JSON files | Not started |
 
 ### 2.12 Client Additional Requirements
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| ADD-01 | PP concept is deferred; for now all moves are handled as **unlimited PP** | In progress |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 
@@ -185,9 +187,11 @@
 
 ### 3.4 Potential Scripting / Editor Considerations
 - Individual-specific potentials (계제 1–4, 속별, PT1, PT2, 전용포텐셜, 고유포텐셜) vary per entity — the system must allow authoring new effect logic
-- Implementation: sandboxed Python `exec` with a restricted API surface exposed to scripts
+- **Primary authoring method: UI form** (dropdown selectors for trigger conditions and effect types); advanced effects may be supplemented with sandboxed Python `exec` script editor
+- The form-based editor constructs an underlying Python snippet; the script editor exposes that snippet for advanced tuning
 - Effects authored in the editor must integrate with the automatic battle-processing trigger system (PT-03)
 - Abilities (특성) and potentials operate on completely separate resolution stacks (PT-06)
+- **Potential test method**: replay actual battle log (from `docs/트레이너 예제.md` trainer/party sample data) to verify correctness
 
 ### 3.5 Move / Ability List Editor Considerations
 - 기술 (moves) are chosen from a master list; the list must be editable at runtime (SK-01)
@@ -198,8 +202,12 @@
 
 ### 3.6 Battle State & Presentation
 - All mid-battle state mutations must be recorded as discrete events (event sourcing pattern)
+- **Battle state snapshot is taken at the start of each turn only** (B-01); not mid-turn or mid-animation
+- **Undo/Redo granularity is per-event** (one BattleEvent at a time), not per-turn (B-02)
 - The event log drives both Undo/Redo (B-02) and animation playback (B-03)
-- A separate "battle editor" mode exposes raw state fields for manual correction (B-04)
+- A **separate "Battle Edit Mode" screen** (not an overlay) exposes the following fields for manual correction (B-04): HP, status conditions, rank stages / reinforcement multipliers, weather / terrain / field states, potential trigger states, PP, active on-field Pokémon; additional fields may be added during testing
+- **Turn history display**: dual-tab UI — text log (chat-style) as primary/default tab; event timeline (card-style) as secondary tab
+- **Save file format**: optimized compact JSON (not human-readable); human editing via the Battle Edit Mode screen instead
 - Field environment states (FE-01 – FE-06) are part of the battle snapshot
 
 ### 3.7 Terminology Enforcement (ST-02)

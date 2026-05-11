@@ -7,6 +7,7 @@ The battle and the editor are completely separate application paths.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Qt
@@ -24,7 +25,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from tunaed_pokemon.engine.battle_state import BattleStateSnapshot, TurnHistory
+from tunaed_pokemon.engine.battle_state import (
+    BattleEventHistory,
+    BattleStateSnapshot,
+    TurnHistory,
+)
 from tunaed_pokemon.engine.events import EventBus, BattleEvent, BattleEventType
 from tunaed_pokemon.engine.action_order import ActionEntry
 from tunaed_pokemon.engine.turn_pipeline import TurnPipeline
@@ -58,10 +63,12 @@ class BattleWindow(QMainWindow):
         self.setMinimumSize(1024, 700)
 
         self._state: BattleStateSnapshot = config["snapshot"]
-        self._history = TurnHistory()
-        self._history.push(self._state)
+        # B-01: TurnHistory records turn-START snapshots only (for save/load).
+        self._turn_history = TurnHistory()
+        # B-02: BattleEventHistory tracks per-event state for Undo/Redo.
+        self._event_history = BattleEventHistory()
         self._bus = EventBus()
-        self._pipeline = TurnPipeline(self._bus)
+        self._pipeline = TurnPipeline(self._bus, self._event_history)
         self._moves = load_moves()
         self._result_announced = False
 
@@ -233,12 +240,13 @@ class BattleWindow(QMainWindow):
         # Turn counter
         self._turn_lbl.setText(f"턴 {s.turn_number}")
 
-        self._undo_btn.setEnabled(self._history.can_undo())
-        self._redo_btn.setEnabled(self._history.can_redo())
+        self._undo_btn.setEnabled(self._event_history.can_undo())
+        self._redo_btn.setEnabled(self._event_history.can_redo())
         self._next_turn_btn.setEnabled(not s.battle_over)
 
-        # Log
+        # Log — text log from state, event timeline from event history
         self._log_panel.set_log(s.log)
+        self._log_panel.set_event_log(self._event_history.event_log())
 
         if s.battle_over:
             self._cmd_panel.set_enabled(False)
@@ -247,7 +255,7 @@ class BattleWindow(QMainWindow):
     # ── Event handlers ────────────────────────────────────────────────────────
 
     def _on_message(self, event: BattleEvent) -> None:
-        self._state.add_log(event.message)
+        # Messages are already added to s.log by TurnPipeline; just refresh panel
         self._log_panel.append(event.message)
 
     def _on_move_selected(self, move_id: str) -> None:
@@ -264,6 +272,9 @@ class BattleWindow(QMainWindow):
         if mv is None:
             self._bus.emit_message(f"알 수 없는 기술: {move_id}")
             return
+
+        # B-01: snapshot at turn START (before processing)
+        self._turn_history.push(self._state)
 
         # Build action for side 1 using the selected move
         action = ActionEntry(side=1, pokemon=attacker, action_type="move", move=mv)
@@ -284,7 +295,6 @@ class BattleWindow(QMainWindow):
             self._state, [action] + opponent_actions, self._moves
         )
         self._state = new_state
-        self._history.push(self._state)
         self._refresh_all()
 
     def _on_switch_requested(self) -> None:
@@ -299,9 +309,10 @@ class BattleWindow(QMainWindow):
         """Advance to the next turn with no move actions (manual turn increment)."""
         if self._state.battle_over:
             return
+        # B-01: snapshot at turn START
+        self._turn_history.push(self._state)
         new_state = self._pipeline.process_turn(self._state, [], self._moves)
         self._state = new_state
-        self._history.push(self._state)
         self._refresh_all()
 
     # ── Save / Load (B-01) ────────────────────────────────────────────────────
@@ -311,7 +322,8 @@ class BattleWindow(QMainWindow):
             self, "배틀 상태 저장", "battle_save.json", "JSON (*.json)"
         )
         if path:
-            save_battle_state(self._state.to_dict(), path.split("/")[-1])
+            data = json.dumps(self._state.to_dict(), ensure_ascii=False, separators=(",", ":"))
+            Path(path).write_text(data, encoding="utf-8")
             self._status_bar.showMessage(f"저장 완료: {path}", 3000)
 
     def _load_state(self) -> None:
@@ -321,31 +333,30 @@ class BattleWindow(QMainWindow):
         if not path:
             return
         try:
-            import json as _json
-            data = _json.loads(open(path, encoding="utf-8").read())
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
             self._state = BattleStateSnapshot.from_dict(data)
             self._reset_result_announcement_flag()
-            self._history.push(self._state)
+            self._event_history.clear()
             self._refresh_all()
             self._status_bar.showMessage(f"불러오기 완료: {path}", 3000)
         except Exception as e:
             QMessageBox.critical(self, "오류", f"불러오기 실패:\n{e}")
 
-    # ── Undo / Redo (B-02) ────────────────────────────────────────────────────
+    # ── Undo / Redo (B-02: per-event) ─────────────────────────────────────────
 
     def _undo(self) -> None:
-        snap = self._history.undo()
+        snap = self._event_history.undo()
         if snap:
             self._state = snap
             self._refresh_all()
-            self._status_bar.showMessage("되돌리기", 2000)
+            self._status_bar.showMessage("되돌리기 (이벤트 단위)", 2000)
 
     def _redo(self) -> None:
-        snap = self._history.redo()
+        snap = self._event_history.redo()
         if snap:
             self._state = snap
             self._refresh_all()
-            self._status_bar.showMessage("다시실행", 2000)
+            self._status_bar.showMessage("다시실행 (이벤트 단위)", 2000)
 
     # ── Battle Editor (B-04) ─────────────────────────────────────────────────
 
@@ -355,7 +366,6 @@ class BattleWindow(QMainWindow):
         if dlg.exec() == BattleEditorDialog.DialogCode.Accepted:
             self._state = dlg.get_state()
             self._reset_result_announcement_flag()
-            self._history.push(self._state)
             self._refresh_all()
             self._status_bar.showMessage("배틀 상태가 편집되었습니다.", 3000)
 

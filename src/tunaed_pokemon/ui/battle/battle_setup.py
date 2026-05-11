@@ -72,6 +72,8 @@ def _build_side_state(party: Party | None, trainers: dict, pokemon: dict,
             type2=p.type2,
             ability_name=p.ability_name,
             move_ids=list(p.move_ids),
+            potentials=[pt for pt in p.potentials],
+            exclusive_potential=p.exclusive_potential,
             battle_stats=battle_stats,
         ))
 
