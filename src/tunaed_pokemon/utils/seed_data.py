@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 
-from tunaed_pokemon.models.pokemon import IVs, MoveData, Pokemon
+from tunaed_pokemon.models.pokemon import AssignedPotential, IVs, MoveData, Pokemon
 from tunaed_pokemon.models.party import Party
 from tunaed_pokemon.models.trainer import Trainer
 from tunaed_pokemon.utils.persistence import (
@@ -99,6 +99,15 @@ _PARTY_SPECS: list[dict] = [
     },
 ]
 
+_DEMO_POTENTIAL_SLOT_GROUPS: list[list[str]] = [
+    ["역할", "분류", "계제①", "속별", "PT①"],
+    ["주인", "이명", "계제②", "유대", "선제"],
+    ["회피", "내성", "격", "범용", "부수"],
+    ["특권", "PT②", "계제③", "계제④", "역할"],
+]
+_DEMO_BASE_POTENTIAL_MULTIPLIER = 1.10
+_DEMO_POTENTIAL_MULTIPLIER_STEP = 0.05
+
 
 def create_demo_parties() -> list[str]:
     """Create (or reuse) 4 doc-based demo parties and return party IDs in order."""
@@ -122,10 +131,24 @@ def create_demo_parties() -> list[str]:
             trainer_by_name[trainer_name] = trainer
 
         member_ids: list[str] = []
-        for member in spec["members"]:
+        for member_idx, member in enumerate(spec["members"]):
             tag = f"[데모:{spec['key']}] {member['name']}"
+            demo_potentials, demo_exclusive = _default_potentials_for_member(member_idx)
+            demo_base_stats = _default_stats_for_types(member["type1"], member.get("type2"))
+            demo_moves = _default_moves_for_types(
+                member["type1"], member.get("type2"), available_move_ids
+            )
             existing = pokemon_by_name.get(tag)
             if existing is not None:
+                existing.type1 = member["type1"]
+                existing.type2 = member.get("type2")
+                existing.level = 50
+                existing.base_stats = demo_base_stats
+                existing.ivs = IVs(hp=15, attack=15, defense=15, sp_atk=15, sp_def=15, speed=15)
+                existing.move_ids = demo_moves
+                existing.potentials = demo_potentials
+                existing.exclusive_potential = demo_exclusive
+                save_pokemon(existing)
                 member_ids.append(existing.id)
                 continue
 
@@ -135,11 +158,11 @@ def create_demo_parties() -> list[str]:
                 type1=member["type1"],
                 type2=member.get("type2"),
                 level=50,
-                base_stats=_default_stats_for_types(member["type1"], member.get("type2")),
+                base_stats=demo_base_stats,
                 ivs=IVs(hp=15, attack=15, defense=15, sp_atk=15, sp_def=15, speed=15),
-                move_ids=_default_moves_for_types(
-                    member["type1"], member.get("type2"), available_move_ids
-                ),
+                move_ids=demo_moves,
+                potentials=demo_potentials,
+                exclusive_potential=demo_exclusive,
             )
             save_pokemon(p)
             pokemon_by_name[tag] = p
@@ -212,8 +235,7 @@ def _default_moves_for_types(
     if available_move_ids:
         return [sorted(available_move_ids)[0]]
     raise RuntimeError(
-        "데모 기술 목록이 비어 있어 데모 파티를 생성할 수 없습니다. "
-        "초기화 이후에도 move 데이터베이스가 비어 있습니다. 앱을 재시작하고 데이터 파일을 확인하세요."
+        "데모 기술 데이터가 없습니다. 데이터베이스 초기화를 확인하세요."
     )
 
 
@@ -255,3 +277,28 @@ def _default_stats_for_types(type1: str, type2: str | None) -> dict[str, int]:
         "sp_def": sp_def,
         "speed": speed,
     }
+
+
+def _default_potentials_for_member(member_idx: int) -> tuple[list[AssignedPotential], AssignedPotential]:
+    """Return deterministic demo potentials by member order.
+
+    Slot groups are rotated so each full 6v6 demo battle can verify
+    multiple potential categories from the template list.
+    """
+    slot_group = _DEMO_POTENTIAL_SLOT_GROUPS[member_idx % len(_DEMO_POTENTIAL_SLOT_GROUPS)]
+    mult = _DEMO_BASE_POTENTIAL_MULTIPLIER + (member_idx % 3) * _DEMO_POTENTIAL_MULTIPLIER_STEP
+
+    potentials: list[AssignedPotential] = [
+        AssignedPotential(
+            slot=slot,
+            name=f"데모-{slot}-{member_idx + 1}",
+            effect=f"자신의 기술의 위력을 강화({mult:.2f}배)한다.",
+        )
+        for slot in slot_group
+    ]
+    exclusive = AssignedPotential(
+        slot="전용포텐셜",
+        name=f"데모-전용-{member_idx + 1}",
+        effect="저확률로 자신의 기술의 대미지가 2배가 된다.",
+    )
+    return potentials, exclusive
