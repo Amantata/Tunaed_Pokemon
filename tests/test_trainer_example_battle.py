@@ -67,7 +67,7 @@ def _make_ray() -> BattlePokemonState:
 
 
 def _make_opponent() -> BattlePokemonState:
-    """대전 상대 — 전기 타입 (레이의 약점 검증용)."""
+    """대전 상대 — 전기 타입 (레이의 타입 상성/포텐셜 검증용)."""
     return BattlePokemonState(
         pokemon_id="opp_01",
         name="상대 포켓몬",

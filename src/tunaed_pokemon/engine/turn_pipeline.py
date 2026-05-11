@@ -42,6 +42,9 @@ class TurnPipeline:
     When ``event_history`` is provided, a (state, event) pair is recorded before
     each atomic state mutation, enabling per-event undo/redo (B-02).
     """
+    # Example matches:
+    # - "자신의 기술의 위력을 강화(1.1배)한다."
+    # - "기술의 위력을 강화(1.5배)"
     _POWER_BOOST_PATTERN = re.compile(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)")
 
     def __init__(
