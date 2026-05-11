@@ -42,6 +42,7 @@ class TurnPipeline:
     When ``event_history`` is provided, a (state, event) pair is recorded before
     each atomic state mutation, enabling per-event undo/redo (B-02).
     """
+    _POWER_BOOST_PATTERN = re.compile(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)")
 
     def __init__(
         self,
@@ -330,4 +331,3 @@ class TurnPipeline:
         state.add_log(msg)
         event = BattleEvent(event_type, message=msg)
         self._record_and_emit(state, event)
-    _POWER_BOOST_PATTERN = re.compile(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)")
