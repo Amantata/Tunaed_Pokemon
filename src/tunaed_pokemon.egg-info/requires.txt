@@ -1,4 +1,8 @@
 PySide6>=6.6
 
+[build]
+pyinstaller>=6.0
+pyinstaller-hooks-contrib>=2024.0
+
 [dev]
 pytest>=7.0

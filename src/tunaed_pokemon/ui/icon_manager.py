@@ -11,6 +11,7 @@ Usage:
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QSize
@@ -18,7 +19,17 @@ from PySide6.QtGui import QIcon
 from PySide6.QtSvg import QSvgRenderer       # noqa: F401 — ensures SVG plugin loaded
 from PySide6.QtWidgets import QAbstractButton, QLabel
 
-_ICONS_DIR = Path(__file__).parent / "icons"
+
+def _get_icons_dir() -> Path:
+    """Return the icons directory, handling both normal and PyInstaller-frozen runs."""
+    meipass = getattr(sys, "_MEIPASS", None)
+    if getattr(sys, "frozen", False) and meipass is not None:
+        # PyInstaller extracts data files into sys._MEIPASS at runtime
+        return Path(meipass) / "tunaed_pokemon" / "ui" / "icons"
+    return Path(__file__).parent / "icons"
+
+
+_ICONS_DIR = _get_icons_dir()
 
 
 def _icon(name: str) -> QIcon:

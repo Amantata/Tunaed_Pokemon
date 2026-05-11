@@ -19,7 +19,7 @@
 |------|----------|------|
 | F-01 | 싱글 및 더블 배틀 6v6 구현 | 미착수 |
 | F-02 | 온라인 배틀 지원 | 미착수 |
-| F-03 | **별도 설치 없이 실행파일(.exe 등)만으로 실행 가능** | 미착수 |
+| F-03 | **별도 설치 없이 실행파일(.exe 등)만으로 실행 가능** | 진행중 (PyInstaller + GitHub 포터블 배포 자동화) |
 | F-04 | 온라인 배틀 방식 비교 제시 (실행파일 서버 연결 vs 도메인 브라우저) | 미착수 |
 | F-05 | 온라인 배틀 시 실시간 관전자 모드 | 미착수 |
 
@@ -138,9 +138,39 @@
 | 번호 | 요구사항 | 상태 |
 |------|----------|------|
 | ADD-01 | PP 개념은 도입하지 않고, 현재는 모든 기술을 **PP 무제한**으로 처리 | 진행중 |
+| ADD-02 | GitHub에서 배포 파일 다운로드만으로(추가 프로그램 설치 없이) 바로 실행 가능해야 함 | 진행중 (Windows 포터블 zip 자동 빌드/배포) |
 
 ---
 ## 개발 문서
 
 - `CLAUDE.md` — AI 에이전트용 프로젝트 가이드 (영문)
 - `docs/` — 게임 규칙 및 데이터 템플릿 (한국어 유지)
+
+---
+
+## Windows 무설치 실행 방법 (F-03, ADD-02)
+
+### 사용자(설치 없이 실행)
+
+1. GitHub **Releases**에서 `TunaedPokemon-portable-windows.zip` 다운로드
+2. 압축 해제
+3. `TunaedPokemon.exe` 실행
+
+- Python/Qt 등 추가 프로그램 설치가 필요 없습니다.
+- 사용자 데이터 저장 위치: `%APPDATA%\TunaedPokemon\`
+
+### 개발자(로컬에서 직접 빌드)
+
+**사전 준비**: Python 3.11+ 설치 (https://python.org)
+
+```bat
+build_windows.bat
+```
+
+결과물: `dist\TunaedPokemon.exe`
+
+**수동 빌드**:
+```bat
+pip install -e ".[build]"
+pyinstaller tunaed_pokemon.spec --noconfirm
+```

@@ -34,7 +34,7 @@
 |----|-------------|--------|
 | F-01 | Single and double battle 6v6 | Not started |
 | F-02 | Online battle support | Not started |
-| F-03 | **Runnable as a standalone executable (.exe etc.) with no separate installation** | Not started |
+| F-03 | **Runnable as a standalone executable (.exe etc.) with no separate installation** | In progress (PyInstaller + GitHub portable distribution automation) |
 | F-04 | Compare online battle approaches (executable server vs. domain browser) and recommend | Not started |
 | F-05 | Real-time spectator mode during online battles | Not started |
 
@@ -153,6 +153,7 @@
 | ID | Requirement | Status |
 |----|-------------|--------|
 | ADD-01 | PP concept is deferred; for now all moves are handled as **unlimited PP** | In progress |
+| ADD-02 | Must be runnable by downloading distributable files from GitHub only, with no additional program installation | In progress (Windows portable zip auto build/release) |
 
 > ⚠️ Client requirements may be added during development. Update this section and README.md whenever new requirements are added.
 
