@@ -11,6 +11,7 @@ Turn steps (CLAUDE.md §4.2 / Battle Flow):
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 from tunaed_pokemon.engine.action_order import ActionEntry, ActionOrderResolver
@@ -176,6 +177,15 @@ class TurnPipeline:
             field=state.field_state,
         )
         result = self._damage.calculate(ctx)
+        potential_mult = self._potential_power_multiplier(attacker)
+        if result.final_damage > 0 and potential_mult > 1.0:
+            result.final_damage = max(1, int(result.final_damage * potential_mult))
+            p_msg = (
+                f"포텐셜 발동! {attacker.name}의 기술 위력이 강화되었다! "
+                f"(x{potential_mult:.2f})"
+            )
+            state.add_log(p_msg)
+            self._bus.emit_message(p_msg)
 
         for msg in result.messages:
             state.add_log(msg)
@@ -198,6 +208,22 @@ class TurnPipeline:
                                           message=faint_msg)
                 self._record_and_emit(state, faint_event)
                 state.add_log(faint_msg)
+
+    def _potential_power_multiplier(self, attacker: BattlePokemonState) -> float:
+        """Return attacker damage multiplier from simple potential text parsing.
+
+        Current scope (test-focused): parse effect text containing
+        "위력을 강화(1.1배)" style expressions from assigned/exclusive potentials.
+        """
+        mult = 1.0
+        effects = [p.effect for p in attacker.potentials if p.effect]
+        if attacker.exclusive_potential and attacker.exclusive_potential.effect:
+            effects.append(attacker.exclusive_potential.effect)
+
+        for effect in effects:
+            for value in re.findall(r"위력을\s*강화\((\d+(?:\.\d+)?)배\)", effect):
+                mult *= float(value)
+        return mult
 
     # ── Step 5 — End of turn (field tick) ─────────────────────────────────────
 

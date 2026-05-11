@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from .field_state import FieldStateManager
 from .status import StatusState
+from ..models.pokemon import AssignedPotential
 
 
 @dataclass
@@ -93,6 +94,8 @@ class BattlePokemonState:
     status: StatusState = field(default_factory=StatusState)
     ability_name: str = ""    # current ability; may change mid-battle (SK-04)
     move_ids: list[str] = field(default_factory=list)
+    potentials: list[AssignedPotential] = field(default_factory=list)
+    exclusive_potential: Optional[AssignedPotential] = None
     is_fainted: bool = False
     # Computed battle stats for damage calculation.
     # Keys: hp, attack, defense, sp_atk, sp_def, speed (all int).
@@ -119,6 +122,8 @@ class BattlePokemonState:
             "status": self.status.to_dict(),
             "ability_name": self.ability_name,
             "move_ids": list(self.move_ids),
+            "potentials": [p.to_dict() for p in self.potentials],
+            "exclusive_potential": self.exclusive_potential.to_dict() if self.exclusive_potential else None,
             "is_fainted": self.is_fainted,
             "battle_stats": dict(self.battle_stats),
             "pp_remaining": list(self.pp_remaining),
@@ -130,10 +135,14 @@ class BattlePokemonState:
         d["rank_stages"] = RankStages.from_dict(d.get("rank_stages", {}))
         d["reinforcements"] = Reinforcements.from_dict(d.get("reinforcements", {}))
         d["status"] = StatusState.from_dict(d.get("status", {}))
+        d["potentials"] = [AssignedPotential.from_dict(p) for p in d.get("potentials", [])]
+        if isinstance(d.get("exclusive_potential"), dict):
+            d["exclusive_potential"] = AssignedPotential.from_dict(d["exclusive_potential"])
         known = {
             "pokemon_id", "name", "current_hp", "max_hp", "level",
             "type1", "type2", "rank_stages", "reinforcements",
-            "status", "ability_name", "move_ids", "is_fainted", "battle_stats",
+            "status", "ability_name", "move_ids", "potentials", "exclusive_potential",
+            "is_fainted", "battle_stats",
             "pp_remaining",
         }
         return cls(**{k: v for k, v in d.items() if k in known})

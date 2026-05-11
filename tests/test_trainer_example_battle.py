@@ -14,6 +14,7 @@ docs/트레이너 예제.md의 달크 트레이너 파티 (섬도희 레이 등)
 
 from __future__ import annotations
 
+import random
 import pytest
 
 from tunaed_pokemon.engine.action_order import ActionEntry
@@ -26,7 +27,7 @@ from tunaed_pokemon.engine.battle_state import (
 )
 from tunaed_pokemon.engine.events import BattleEventType
 from tunaed_pokemon.engine.turn_pipeline import TurnPipeline
-from tunaed_pokemon.models.pokemon import MoveData
+from tunaed_pokemon.models.pokemon import AssignedPotential, MoveData
 
 
 # ── 예제 파티 구성 헬퍼 ───────────────────────────────────────────────────────
@@ -50,6 +51,13 @@ def _make_ray() -> BattlePokemonState:
         type2="비행",
         ability_name="오기",
         move_ids=moves,
+        potentials=[
+            AssignedPotential(
+                slot="PT①",
+                name="안경과 머리띠",
+                effect="자신의 기술의 위력을 강화(1.1배)한다.",
+            )
+        ],
         pp_remaining=pp_list,
         battle_stats={
             "hp": 270, "attack": 135, "defense": 90,
@@ -159,6 +167,10 @@ class TestExamplePartySetup:
         assert state.side1.trainer_name == "달크"
         assert len(state.side1.pokemon_states) == 1
         assert state.side1.pokemon_states[0].name == "섬도희 레이"
+
+    def test_ray_has_example_pt_potential(self):
+        ray = _make_ray()
+        assert any("위력을 강화(1.1배)" in p.effect for p in ray.potentials)
 
 
 # ── B-02: BattleEventHistory 이벤트 기록 테스트 ──────────────────────────────
@@ -371,6 +383,36 @@ class TestPPUnlimited:
 
         ray_after = current.side1.pokemon_states[0]
         assert ray_after.pp_remaining[0] == 10
+
+
+# ── 예제 포텐셜 작동 검증 ───────────────────────────────────────────────────────
+
+class TestExamplePotentialActivation:
+    def test_example_potential_boosts_damage(self):
+        state_with, moves = _make_battle()
+        state_without, _ = _make_battle()
+        state_without.side1.pokemon_states[0].potentials = []
+
+        pipe = TurnPipeline()
+        move = moves["hitblade"]
+
+        random.seed(20260511)
+        with_result = pipe.process_turn(
+            state_with,
+            [ActionEntry(side=1, pokemon=state_with.side1.pokemon_states[0], action_type="move", move=move)],
+            moves,
+        )
+        random.seed(20260511)
+        without_result = pipe.process_turn(
+            state_without,
+            [ActionEntry(side=1, pokemon=state_without.side1.pokemon_states[0], action_type="move", move=move)],
+            moves,
+        )
+
+        hp_with = with_result.side2.pokemon_states[0].current_hp
+        hp_without = without_result.side2.pokemon_states[0].current_hp
+        assert hp_with < hp_without
+        assert any("포텐셜 발동!" in line for line in with_result.log)
 
 
 # ── 다턴 배틀 로그 재생 테스트 ───────────────────────────────────────────────
