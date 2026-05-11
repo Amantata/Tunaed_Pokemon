@@ -331,6 +331,8 @@ See: `docs/기본 규칙.md`, `docs/기타 시스템 처리규칙.md`
 | `소지품목록.md` | Full item list and effects | Item system |
 | `템플릿 포텐셜 목록.md` | Full potential list: 역할/분류/대○/유대/선제/범용/특권/주인 | Potential database |
 | `트레이너 예제.md` | Trainer + party creation examples | Data validation |
+| `기술목록.md` | Full move list (~1757 entries): 소켓, 기술명, 타입, 분류, 위력, 명중, 범위, 우선도, 효과 etc. (from 부트마스 spreadsheet) | Move master data (SK-01) |
+| `특성목록.md` | Full ability list (~934 entries): 소켓, 이름, 효과, 방호특성 etc. (from 부트마스 spreadsheet) | Ability master data (SK-03) |
 | `te` | Empty file (ignore) | — |
 
 ---
