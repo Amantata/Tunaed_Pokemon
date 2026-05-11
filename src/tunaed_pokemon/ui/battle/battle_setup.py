@@ -16,11 +16,8 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QGroupBox,
-    QLabel,
     QLineEdit,
     QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
     QWidget,
 )
 
@@ -33,6 +30,7 @@ from tunaed_pokemon.engine.battle_state import (
     BattlePokemonState,
 )
 from tunaed_pokemon.utils.stat_calc import calc_hp, calc_stat
+from tunaed_pokemon.utils.seed_data import create_demo_parties
 
 
 def _build_side_state(party: Party | None, trainers: dict, pokemon: dict,
@@ -93,10 +91,12 @@ class BattleSetupDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("전투 설정")
         self.setMinimumWidth(440)
+        self._demo_party_ids = self._ensure_default_demo_parties()
         self._parties = load_all_parties()
         self._trainers = load_all_trainers()
         self._pokemon = load_all_pokemon()
         self._build_ui()
+        self._auto_select_demo_parties(self._demo_party_ids)
 
     # ── UI ────────────────────────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ class BattleSetupDialog(QDialog):
         self._side2_grp = self._make_side_group("플레이어 2 (상대편)")
         layout.addWidget(self._side2_grp["group"])
 
-        # Buttons
+        # Start / Cancel
         btns = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -145,6 +145,35 @@ class BattleSetupDialog(QDialog):
         lay.addRow("파티:", party_combo)
 
         return {"group": grp, "name": name_edit, "party": party_combo}
+
+    def _ensure_default_demo_parties(self) -> list[str]:
+        """Ensure doc-based demo parties are available as default data."""
+        return create_demo_parties()
+
+    def _auto_select_demo_parties(self, demo_party_ids: list[str]) -> None:
+        """Auto-select the first two demo parties in the two side combos."""
+        # Auto-select the first two created demo parties.
+        preferred = list(demo_party_ids[:2])
+        while len(preferred) < 2:
+            preferred.append(None)
+        for grp, demo_id in [(self._side1_grp, preferred[0]), (self._side2_grp, preferred[1])]:
+            combo: QComboBox = grp["party"]
+            idx = combo.findData(demo_id)
+            if idx >= 0:
+                combo.setCurrentIndex(idx)
+
+    def _refresh_party_combos(self) -> None:
+        """Repopulate both party combo boxes from self._parties."""
+        for grp in (self._side1_grp, self._side2_grp):
+            combo: QComboBox = grp["party"]
+            current = combo.currentData()
+            combo.clear()
+            combo.addItem("(파티 없음)", None)
+            for p in self._parties.values():
+                combo.addItem(p.name, p.id)
+            idx = combo.findData(current)
+            combo.setCurrentIndex(max(0, idx))
+
 
     # ── Result ────────────────────────────────────────────────────────────────
 
