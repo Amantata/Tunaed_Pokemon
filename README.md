@@ -19,7 +19,7 @@
 |------|----------|------|
 | F-01 | 싱글 및 더블 배틀 6v6 구현 | 미착수 |
 | F-02 | 온라인 배틀 지원 | 미착수 |
-| F-03 | **별도 설치 없이 실행파일(.exe 등)만으로 실행 가능** | 미착수 |
+| F-03 | **별도 설치 없이 실행파일(.exe 등)만으로 실행 가능** | 진행중 (PyInstaller 빌드 설정 완료) |
 | F-04 | 온라인 배틀 방식 비교 제시 (실행파일 서버 연결 vs 도메인 브라우저) | 미착수 |
 | F-05 | 온라인 배틀 시 실시간 관전자 모드 | 미착수 |
 
@@ -144,3 +144,25 @@
 
 - `CLAUDE.md` — AI 에이전트용 프로젝트 가이드 (영문)
 - `docs/` — 게임 규칙 및 데이터 템플릿 (한국어 유지)
+
+---
+
+## Windows .exe 빌드 방법 (F-03)
+
+**사전 준비**: Python 3.11+ 설치 (https://python.org)
+
+```bat
+build_windows.bat
+```
+
+결과물: `dist\TunaedPokemon.exe`
+
+**수동 빌드**:
+```bat
+pip install -e ".[build]"
+pyinstaller tunaed_pokemon.spec --noconfirm
+```
+
+- 빌드 도구: **PyInstaller** (Windows 전용)
+- 출력: 단일 `.exe` (설치 불필요)
+- 사용자 데이터 저장 위치: `%APPDATA%\TunaedPokemon\`
