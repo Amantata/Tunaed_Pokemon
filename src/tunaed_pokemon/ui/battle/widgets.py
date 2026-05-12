@@ -367,6 +367,20 @@ class CommandPanel(QWidget):
             btn.setEnabled(enabled and bool(btn.property("move_id")))
         self._switch_btn.setEnabled(enabled)
 
+    def mark_selected(self, move_id: str | None) -> None:
+        """Highlight the selected move button and dim others.
+
+        Pass ``None`` to clear all highlights (e.g. after a switch selection
+        or when resetting at the start of a new command phase).
+        """
+        for btn in self._move_btns:
+            if move_id is not None and btn.property("move_id") == move_id:
+                btn.setStyleSheet(
+                    "background: #34E5FF; color: #1a1a2e; font-weight: bold;"
+                )
+            else:
+                btn.setStyleSheet("")
+
     def _on_move_clicked(self, idx: int) -> None:
         mid = self._move_btns[idx].property("move_id")
         if mid:

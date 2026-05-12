@@ -79,6 +79,9 @@ class BattleWindow(QMainWindow):
         self._moves = load_moves()
         self._result_announced = False
         self._opponent_cmd_panel: CommandPanel | None = None
+        # Dual-player pending actions (filled when each side confirms their move)
+        self._pending_action1: ActionEntry | None = None
+        self._pending_action2: ActionEntry | None = None
 
         self._build_ui()
         self._refresh_all()
@@ -208,6 +211,12 @@ class BattleWindow(QMainWindow):
         self._fmt_lbl.setStyleSheet("color: #A0A0B0; font-size: 12px;")
         lay.addWidget(self._fmt_lbl, alignment=Qt.AlignmentFlag.AlignLeft)
 
+        # Pending-action status: shows which sides have already chosen
+        self._pending_lbl = QLabel("")
+        self._pending_lbl.setStyleSheet("color: #FFE66D; font-size: 12px;")
+        self._pending_lbl.setWordWrap(True)
+        lay.addWidget(self._pending_lbl, alignment=Qt.AlignmentFlag.AlignLeft)
+
         self._next_turn_btn = QPushButton("다음 턴")
         self._next_turn_btn.setObjectName("primary")
         self._next_turn_btn.setIcon(Icons.NEXT_TURN)
@@ -241,11 +250,11 @@ class BattleWindow(QMainWindow):
             self._cmd_panel.switch_requested.connect(self._on_switch_requested)
         else:
             self._opponent_cmd_panel = cmd
-            cmd.set_enabled(False)
+            self._opponent_cmd_panel.move_selected.connect(self._on_opponent_move_selected)
+            self._opponent_cmd_panel.switch_requested.connect(self._on_switch_requested_side2)
 
         extra = QLineEdit()
         extra.setPlaceholderText("추가입력장")
-        extra.setReadOnly(side_num == 2)
         lay.addWidget(extra)
         lay.addStretch()
 
@@ -291,16 +300,32 @@ class BattleWindow(QMainWindow):
         # Command panel (moves of the first active Pokémon on side 1)
         if active1:
             self._cmd_panel.refresh(active1[0].move_ids, self._moves)
-            self._cmd_panel.set_enabled(not active1[0].is_fainted)
+            self._cmd_panel.mark_selected(None)
+            # Enable only if no pending action yet for side 1
+            self._cmd_panel.set_enabled(
+                not active1[0].is_fainted and self._pending_action1 is None
+            )
         else:
             self._cmd_panel.refresh([], self._moves)
             self._cmd_panel.set_enabled(False)
         if self._opponent_cmd_panel is not None:
             if active2:
                 self._opponent_cmd_panel.refresh(active2[0].move_ids, self._moves)
+                self._opponent_cmd_panel.mark_selected(None)
+                # Enable only if no pending action yet for side 2
+                self._opponent_cmd_panel.set_enabled(
+                    not active2[0].is_fainted and self._pending_action2 is None
+                )
             else:
                 self._opponent_cmd_panel.refresh([], self._moves)
-            self._opponent_cmd_panel.set_enabled(False)
+                self._opponent_cmd_panel.set_enabled(False)
+
+        # Pending action status label
+        p1_text = "선택 완료" if self._pending_action1 is not None else "선택 대기"
+        p2_text = "선택 완료" if self._pending_action2 is not None else "선택 대기"
+        self._pending_lbl.setText(
+            f"플레이어 1: {p1_text}   |   플레이어 2: {p2_text}"
+        )
 
         # Format label
         self._fmt_lbl.setText(f"[{s.battle_format}]")
@@ -354,6 +379,8 @@ class BattleWindow(QMainWindow):
     def _on_move_selected(self, move_id: str) -> None:
         if self._state.battle_over:
             return
+        if self._pending_action1 is not None:
+            return  # already selected this turn
         mv = self._moves.get(move_id)
         actives1 = self._state.side1.active_pokemon
         if not actives1:
@@ -361,63 +388,129 @@ class BattleWindow(QMainWindow):
         attacker = actives1[0]
         if attacker.is_fainted:
             return
-
         if mv is None:
             self._bus.emit_message(f"알 수 없는 기술: {move_id}")
             return
 
-        # B-01: snapshot at turn START (before processing)
-        self._turn_history.push(self._state)
+        self._pending_action1 = ActionEntry(side=1, pokemon=attacker, action_type="move", move=mv)
+        self._cmd_panel.mark_selected(move_id)
+        self._cmd_panel.set_enabled(False)
+        self._refresh_pending_lbl()
+        self._try_execute_turn()
 
-        action = ActionEntry(side=1, pokemon=attacker, action_type="move", move=mv)
-        new_state = self._pipeline.process_turn(
-            self._state, [action] + self._build_ai_action(2), self._moves
-        )
-        self._state = new_state
-        self._handle_post_faint_switch()
-        self._refresh_all()
-
-    def _on_switch_requested(self) -> None:
-        """Handle voluntary switch: player chooses a party member to send out."""
+    def _on_opponent_move_selected(self, move_id: str) -> None:
         if self._state.battle_over:
             return
-        idx = self._pick_switch_target(self._state.side1, forced=False)
+        if self._pending_action2 is not None:
+            return  # already selected this turn
+        mv = self._moves.get(move_id)
+        actives2 = self._state.side2.active_pokemon
+        if not actives2:
+            return
+        attacker = actives2[0]
+        if attacker.is_fainted:
+            return
+        if mv is None:
+            self._bus.emit_message(f"알 수 없는 기술: {move_id}")
+            return
+
+        self._pending_action2 = ActionEntry(side=2, pokemon=attacker, action_type="move", move=mv)
+        self._opponent_cmd_panel.mark_selected(move_id)
+        self._opponent_cmd_panel.set_enabled(False)
+        self._refresh_pending_lbl()
+        self._try_execute_turn()
+
+    def _on_switch_requested(self) -> None:
+        """Handle voluntary switch for player 1."""
+        if self._state.battle_over:
+            return
+        if self._pending_action1 is not None:
+            return
+        idx = self._pick_switch_target(self._state.side1, forced=False,
+                                       hint="플레이어 1: 교대할 포켓몬을 선택하세요.")
         if idx is None:
+            return
+
+        active1 = self._state.side1.active_pokemon
+        attacker = active1[0] if active1 else None
+        if attacker is None:
+            return
+
+        self._pending_action1 = ActionEntry(
+            side=1, pokemon=attacker, action_type="switch", switch_target=idx,
+        )
+        self._cmd_panel.mark_selected(None)
+        self._cmd_panel.set_enabled(False)
+        self._refresh_pending_lbl()
+        self._try_execute_turn()
+
+    def _on_switch_requested_side2(self) -> None:
+        """Handle voluntary switch for player 2."""
+        if self._state.battle_over:
+            return
+        if self._pending_action2 is not None:
+            return
+        idx = self._pick_switch_target(self._state.side2, forced=False,
+                                       hint="플레이어 2: 교대할 포켓몬을 선택하세요.")
+        if idx is None:
+            return
+
+        active2 = self._state.side2.active_pokemon
+        attacker = active2[0] if active2 else None
+        if attacker is None:
+            return
+
+        self._pending_action2 = ActionEntry(
+            side=2, pokemon=attacker, action_type="switch", switch_target=idx,
+        )
+        self._opponent_cmd_panel.mark_selected(None)
+        self._opponent_cmd_panel.set_enabled(False)
+        self._refresh_pending_lbl()
+        self._try_execute_turn()
+
+    # ── Turn processing ───────────────────────────────────────────────────────
+
+    def _refresh_pending_lbl(self) -> None:
+        """Update the pending-action status label only (no full refresh)."""
+        p1_text = "선택 완료" if self._pending_action1 is not None else "선택 대기"
+        p2_text = "선택 완료" if self._pending_action2 is not None else "선택 대기"
+        self._pending_lbl.setText(
+            f"플레이어 1: {p1_text}   |   플레이어 2: {p2_text}"
+        )
+
+    def _try_execute_turn(self) -> None:
+        """Execute the turn when both sides have a pending action."""
+        if self._pending_action1 is None or self._pending_action2 is None:
             return
 
         # B-01: snapshot at turn START
         self._turn_history.push(self._state)
 
-        active1 = self._state.side1.active_pokemon
-        attacker = active1[0] if active1 else None
-
-        actions: list[ActionEntry] = []
-        if attacker:
-            switch_action = ActionEntry(
-                side=1,
-                pokemon=attacker,
-                action_type="switch",
-                switch_target=idx,
-            )
-            actions.append(switch_action)
-
-        # AI also acts this turn
-        actions += self._build_ai_action(2)
+        actions: list[ActionEntry] = [self._pending_action1, self._pending_action2]
+        self._pending_action1 = None
+        self._pending_action2 = None
 
         new_state = self._pipeline.process_turn(self._state, actions, self._moves)
         self._state = new_state
         self._handle_post_faint_switch()
         self._refresh_all()
 
-    # ── Turn processing ───────────────────────────────────────────────────────
-
     def _advance_turn(self) -> None:
-        """Advance to the next turn with no move actions (manual turn increment)."""
+        """Skip-turn button: clears any pending actions and runs a turn with no moves."""
         if self._state.battle_over:
             return
+        # Collect whatever has been selected so far (or empty)
+        actions: list[ActionEntry] = []
+        if self._pending_action1 is not None:
+            actions.append(self._pending_action1)
+        if self._pending_action2 is not None:
+            actions.append(self._pending_action2)
+        self._pending_action1 = None
+        self._pending_action2 = None
+
         # B-01: snapshot at turn START
         self._turn_history.push(self._state)
-        new_state = self._pipeline.process_turn(self._state, [], self._moves)
+        new_state = self._pipeline.process_turn(self._state, actions, self._moves)
         self._state = new_state
         self._handle_post_faint_switch()
         self._refresh_all()
@@ -425,12 +518,14 @@ class BattleWindow(QMainWindow):
     # ── Switch helpers ────────────────────────────────────────────────────────
 
     def _pick_switch_target(
-        self, side_state: BattleSideState, *, forced: bool
+        self, side_state: BattleSideState, *, forced: bool,
+        hint: str = "",
     ) -> int | None:
         """Show a dialog for the player to choose a Pokémon to switch to.
 
         Returns the index into side_state.pokemon_states, or None if cancelled.
         ``forced=True`` means the dialog cannot be dismissed without selecting.
+        ``hint`` overrides the default prompt text.
         """
         candidates: list[tuple[int, str]] = []
         for i, ps in enumerate(side_state.pokemon_states):
@@ -439,7 +534,7 @@ class BattleWindow(QMainWindow):
         if not candidates:
             return None
 
-        dlg = _SwitchSelectDialog(candidates, forced=forced, parent=self)
+        dlg = _SwitchSelectDialog(candidates, forced=forced, hint=hint, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             return dlg.selected_index()
         return None
@@ -457,25 +552,30 @@ class BattleWindow(QMainWindow):
     def _handle_post_faint_switch(self) -> None:
         """After a turn, handle forced switches for fainted active Pokémon.
 
-        - Player side (1): show switch dialog (forced — cannot skip).
-        - AI side (2):     auto-switch to the first available Pokémon.
+        Both side 1 and side 2 now show a switch dialog (both are human players).
+        If no candidates remain (all fainted), battle_over handles it.
         """
         if self._state.battle_over:
             return
 
-        # AI side: auto-switch fainted active Pokémon
+        # Side 2: player 2 picks
         side2 = self._state.side2
         actives2 = side2.active_pokemon
         if actives2 and actives2[0].is_fainted:
-            next_idx = self._find_next_available(side2)
-            if next_idx is not None:
-                self._do_switch_in(side2, next_idx)
+            idx = self._pick_switch_target(side2, forced=True,
+                                           hint="플레이어 2: 다음 포켓몬을 선택하세요. (필수)")
+            if idx is None:
+                # Fallback: auto-pick first available
+                idx = self._find_next_available(side2)
+            if idx is not None:
+                self._do_switch_in(side2, idx)
 
-        # Player side: prompt for switch
+        # Side 1: player 1 picks
         side1 = self._state.side1
         actives1 = side1.active_pokemon
         if actives1 and actives1[0].is_fainted and not self._state.battle_over:
-            idx = self._pick_switch_target(side1, forced=True)
+            idx = self._pick_switch_target(side1, forced=True,
+                                           hint="플레이어 1: 다음 포켓몬을 선택하세요. (필수)")
             if idx is not None:
                 self._do_switch_in(side1, idx)
 
@@ -508,6 +608,8 @@ class BattleWindow(QMainWindow):
         try:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
             self._state = BattleStateSnapshot.from_dict(data)
+            self._pending_action1 = None
+            self._pending_action2 = None
             self._reset_result_announcement_flag()
             self._event_history.clear()
             self._refresh_all()
@@ -521,6 +623,8 @@ class BattleWindow(QMainWindow):
         snap = self._event_history.undo()
         if snap:
             self._state = snap
+            self._pending_action1 = None
+            self._pending_action2 = None
             self._refresh_all()
             self._status_bar.showMessage("되돌리기 (이벤트 단위)", 2000)
 
@@ -528,6 +632,8 @@ class BattleWindow(QMainWindow):
         snap = self._event_history.redo()
         if snap:
             self._state = snap
+            self._pending_action1 = None
+            self._pending_action2 = None
             self._refresh_all()
             self._status_bar.showMessage("다시실행 (이벤트 단위)", 2000)
 
@@ -574,6 +680,8 @@ class _SwitchSelectDialog(QDialog):
         List of (party_index, display_text) tuples for switchable Pokémon.
     forced:
         If True the Cancel button is hidden (post-faint forced switch).
+    hint:
+        Optional override for the prompt text shown above the list.
     """
 
     def __init__(
@@ -581,6 +689,7 @@ class _SwitchSelectDialog(QDialog):
         candidates: list[tuple[int, str]],
         *,
         forced: bool = False,
+        hint: str = "",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -589,8 +698,13 @@ class _SwitchSelectDialog(QDialog):
         self.setMinimumWidth(300)
 
         lay = QVBoxLayout(self)
-        hint = "교대할 포켓몬을 선택하세요." if not forced else "다음 포켓몬을 선택하세요. (필수)"
-        lay.addWidget(QLabel(hint))
+        if hint:
+            prompt = hint
+        elif forced:
+            prompt = "다음 포켓몬을 선택하세요. (필수)"
+        else:
+            prompt = "교대할 포켓몬을 선택하세요."
+        lay.addWidget(QLabel(prompt))
 
         self._list = QListWidget()
         for _, text in candidates:
