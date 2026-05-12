@@ -320,12 +320,8 @@ class BattleWindow(QMainWindow):
                 self._opponent_cmd_panel.refresh([], self._moves)
                 self._opponent_cmd_panel.set_enabled(False)
 
-        # Pending action status label
-        p1_text = "선택 완료" if self._pending_action1 is not None else "선택 대기"
-        p2_text = "선택 완료" if self._pending_action2 is not None else "선택 대기"
-        self._pending_lbl.setText(
-            f"플레이어 1: {p1_text}   |   플레이어 2: {p2_text}"
-        )
+        # Pending action status label — reuse helper to avoid duplication
+        self._refresh_pending_lbl()
 
         # Format label
         self._fmt_lbl.setText(f"[{s.battle_format}]")
@@ -415,8 +411,9 @@ class BattleWindow(QMainWindow):
             return
 
         self._pending_action2 = ActionEntry(side=2, pokemon=attacker, action_type="move", move=mv)
-        self._opponent_cmd_panel.mark_selected(move_id)
-        self._opponent_cmd_panel.set_enabled(False)
+        if self._opponent_cmd_panel is not None:
+            self._opponent_cmd_panel.mark_selected(move_id)
+            self._opponent_cmd_panel.set_enabled(False)
         self._refresh_pending_lbl()
         self._try_execute_turn()
 
@@ -463,8 +460,9 @@ class BattleWindow(QMainWindow):
         self._pending_action2 = ActionEntry(
             side=2, pokemon=attacker, action_type="switch", switch_target=idx,
         )
-        self._opponent_cmd_panel.mark_selected(None)
-        self._opponent_cmd_panel.set_enabled(False)
+        if self._opponent_cmd_panel is not None:
+            self._opponent_cmd_panel.mark_selected(None)
+            self._opponent_cmd_panel.set_enabled(False)
         self._refresh_pending_lbl()
         self._try_execute_turn()
 
@@ -478,6 +476,17 @@ class BattleWindow(QMainWindow):
             f"플레이어 1: {p1_text}   |   플레이어 2: {p2_text}"
         )
 
+    def _collect_and_clear_pending_actions(self) -> list[ActionEntry]:
+        """Return any pending actions and clear them."""
+        actions: list[ActionEntry] = []
+        if self._pending_action1 is not None:
+            actions.append(self._pending_action1)
+        if self._pending_action2 is not None:
+            actions.append(self._pending_action2)
+        self._pending_action1 = None
+        self._pending_action2 = None
+        return actions
+
     def _try_execute_turn(self) -> None:
         """Execute the turn when both sides have a pending action."""
         if self._pending_action1 is None or self._pending_action2 is None:
@@ -485,11 +494,7 @@ class BattleWindow(QMainWindow):
 
         # B-01: snapshot at turn START
         self._turn_history.push(self._state)
-
-        actions: list[ActionEntry] = [self._pending_action1, self._pending_action2]
-        self._pending_action1 = None
-        self._pending_action2 = None
-
+        actions = self._collect_and_clear_pending_actions()
         new_state = self._pipeline.process_turn(self._state, actions, self._moves)
         self._state = new_state
         self._handle_post_faint_switch()
@@ -500,13 +505,7 @@ class BattleWindow(QMainWindow):
         if self._state.battle_over:
             return
         # Collect whatever has been selected so far (or empty)
-        actions: list[ActionEntry] = []
-        if self._pending_action1 is not None:
-            actions.append(self._pending_action1)
-        if self._pending_action2 is not None:
-            actions.append(self._pending_action2)
-        self._pending_action1 = None
-        self._pending_action2 = None
+        actions = self._collect_and_clear_pending_actions()
 
         # B-01: snapshot at turn START
         self._turn_history.push(self._state)
